@@ -1,0 +1,212 @@
+```gitignore
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+.pnp/
+.pnp.cjs
+.pnp.loader.mjs
+
+# Package manager caches / logs
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-store/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Expo / React Native / Metro
+# ---------------------------------------------------------------------------
+.expo/
+.expo-shared/
+.web-build/
+dist/
+build/
+lib/
+coverage/
+
+.metro-cache/
+.haste-map-*
+.react-native/
+
+# Expo Application Services
+.eas/
+eas.json.local
+
+# ---------------------------------------------------------------------------
+# Native Android
+# ---------------------------------------------------------------------------
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+android/**/generated/
+android/**/intermediates/
+android/**/outputs/
+
+*.apk
+*.aab
+*.ap_
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# ---------------------------------------------------------------------------
+# Native iOS / macOS
+# ---------------------------------------------------------------------------
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace
+ios/xcuserdata/
+ios/**/*.xcuserstate
+
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserdatad
+*.xccheckout
+*.moved-aside
+*.hmap
+
+# CocoaPods
+Podfile.lock
+
+# ---------------------------------------------------------------------------
+# Xcode / Apple signing
+# ---------------------------------------------------------------------------
+*.mobileprovision
+*.provisionprofile
+*.cer
+*.p12
+*.key
+
+# ---------------------------------------------------------------------------
+# TypeScript / JavaScript
+# ---------------------------------------------------------------------------
+*.tsbuildinfo
+*.eslintcache
+.cache/
+.parcel-cache/
+.turbo/
+.next/
+.nuxt/
+.svelte-kit/
+
+# ---------------------------------------------------------------------------
+# Test output
+# ---------------------------------------------------------------------------
+jest-results.json
+junit.xml
+test-results/
+playwright-report/
+blob-report/
+
+# ---------------------------------------------------------------------------
+# Environment / secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.sample
+
+*.local
+*.secret
+*.secrets
+
+# ---------------------------------------------------------------------------
+# Editors / IDEs
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*.swn
+
+# ---------------------------------------------------------------------------
+# OS files
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---------------------------------------------------------------------------
+# Markdown docs
+# Ignore all .md files except README and CONTRIBUTING variants.
+# This also keeps agent docs like AGENTS.md, CLAUDE.md, GEMINI.md, etc. out.
+# ---------------------------------------------------------------------------
+*.md
+!README.md
+!README.MD
+!readme.md
+!Contributing.md
+!CONTRIBUTING.md
+!CONTRIBUTING.MD
+!contributing.md
+
+# ---------------------------------------------------------------------------
+# Coding agents / AI assistant local files
+# ---------------------------------------------------------------------------
+AGENTS.local.md
+CLAUDE.local.md
+GEMINI.local.md
+
+.claude/
+.codex/
+.cursor/
+.continue/
+.windsurf/
+.aider*
+.roo/
+.kilocode/
+.qodo/
+.tabnine/
+
+.cursorrules
+.cursorignore
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v3/
+.repomix-output/
+repomix-output.*
+prompt.md
+prompts.local/
+scratch.md
+scratch/
+tmp/
+temp/
+
+# ---------------------------------------------------------------------------
+# Misc generated artifacts
+# ---------------------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+coverage-final.json
+lcov.info
+
+# Local archives / bundles
+*.tgz
+*.zip
+*.tar
+*.tar.gz
+```
