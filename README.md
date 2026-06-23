@@ -1,2 +1,234 @@
 # expo-mpv-player
-A libmpv-powered video player for Expo &amp; React Native that direct-plays codecs AVPlayer/ExoPlayer can't.
+
+A **play-anything** video player for **Expo** and **React Native**, powered by
+[**libmpv**](https://github.com/mpv-player/mpv). It direct-plays the codecs and
+containers that the platform players (`AVPlayer`, `ExoPlayer`) reject — MKV, 10‑bit
+HEVC, VC‑1, DTS / DTS‑HD / TrueHD, E‑AC3, PGS/ASS subtitles — so your media server
+doesn't have to transcode.
+
+> **Status:** pre‑1.0, under active development. The public API (the `source` prop,
+> events, and ref methods) is stabilizing but may still change before `1.0.0`.
+> Prereleases are published under the `next` npm dist‑tag.
+
+---
+
+## Why
+
+Platform-native players are limited to a narrow, OS-defined set of codecs. Point one at
+a typical home-media file — say a 10‑bit HEVC MKV with TrueHD audio and image-based
+subtitles — and it fails on container, audio, *and* subtitle support, forcing your
+server into a slow, lossy, CPU/GPU-hungry transcode. `libmpv` bundles its own
+decoders (FFmpeg + libass) and decodes on the **client**, so the file streams as-is.
+This is the same engine strategy used by Swiftfin, Findroid, and other serious
+self-hosted-media clients — packaged here as a clean, New-Architecture-native Expo
+module.
+
+## Features
+
+- 🎞️ **Broad codec/container support** via libmpv (MKV, HEVC 10‑bit, VC‑1, DTS‑HD,
+  TrueHD, E‑AC3, AV1, FLAC, PGS/ASS subtitles, …).
+- ⚡ **Hardware decoding** (VideoToolbox on iOS, MediaCodec on Android).
+- 🎚️ **Audio & subtitle track selection**, external subtitle files, resume position.
+- 🌐 **Remote streams with custom HTTP headers** (e.g. an `Authorization` header) — the
+  module is backend-agnostic; it takes a URL + headers and plays.
+- 🧩 **Expo config plugin** — works under `expo prebuild` with no hand-written native
+  code in your app.
+- 🆕 **New Architecture** (Fabric) native; built on the Expo Modules API.
+
+## Platform support
+
+| Platform | Supported | Notes |
+|---|---|---|
+| iOS | ✅ | iOS 14+. Renders via Metal/MoltenVK. Requires static frameworks. |
+| tvOS | ⚠️ experimental | iOS 14+ codebase; HDR passthrough is rough. |
+| Android | ✅ | **minSdk 26** (Android 8.0). Below 26, fall back to another player. |
+| Web | ❌ | Exports inert stubs so your app still bundles; renders an unsupported notice. |
+
+> **Not available in Expo Go.** This module ships native code, so you need a
+> [development build](https://docs.expo.dev/develop/development-builds/introduction/).
+
+## Installation
+
+```sh
+npm install expo-mpv-player
+# prereleases:
+npm install expo-mpv-player@next
+```
+
+Add the config plugin to your `app.json` / `app.config.js`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      "expo-mpv-player",
+      [
+        "expo-build-properties",
+        { "ios": { "useFrameworks": "static" } }
+      ]
+    ]
+  }
+}
+```
+
+The `useFrameworks: "static"` setting is **required on iOS** (the mpv engine ships as
+static frameworks). Then regenerate native projects and build a dev client:
+
+```sh
+npx expo prebuild --clean
+npx expo run:ios      # or: npx expo run:android
+```
+
+### Config plugin options
+
+```json
+["expo-mpv-player", {
+  "androidAbiFilters": ["arm64-v8a", "x86_64"],
+  "enableCleartextTraffic": false,
+  "defaultVoDriver": "gpu-next"
+}]
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `androidAbiFilters` | `["arm64-v8a", "x86_64"]` | Native ABIs to bundle. Fewer = smaller app. |
+| `enableCleartextTraffic` | `false` | Allow plain HTTP (e.g. a LAN server). Opt in deliberately. |
+| `defaultVoDriver` | `"gpu-next"` | Android video output driver (`gpu-next` or `gpu`). |
+
+## Quick start
+
+```tsx
+import { useRef } from 'react';
+import { Button, View } from 'react-native';
+import { MpvPlayerView, type MpvPlayerViewRef } from 'expo-mpv-player';
+
+export default function Player() {
+  const ref = useRef<MpvPlayerViewRef>(null);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <MpvPlayerView
+        ref={ref}
+        style={{ flex: 1 }}
+        source={{
+          url: 'https://media.example.com/video/stream',
+          headers: { Authorization: 'MediaBrowser Token="…"' },
+          startPosition: 0,
+          autoplay: true,
+        }}
+        onLoad={(e) => console.log('loaded', e.nativeEvent.url)}
+        onProgress={(e) =>
+          console.log(e.nativeEvent.position, '/', e.nativeEvent.duration)
+        }
+        onPlaybackStateChange={(e) => console.log(e.nativeEvent)}
+        onError={(e) => console.warn(e.nativeEvent.error)}
+        onTracksReady={async () => {
+          const subs = await ref.current?.getSubtitleTracks();
+          console.log('subtitle tracks', subs);
+        }}
+      />
+
+      <Button title="Play" onPress={() => ref.current?.play()} />
+      <Button title="Pause" onPress={() => ref.current?.pause()} />
+      <Button title="+30s" onPress={() => ref.current?.seekBy(30)} />
+    </View>
+  );
+}
+```
+
+## API
+
+### `<MpvPlayerView>` props
+
+| Prop | Type | Description |
+|---|---|---|
+| `source` | `VideoSource` | URL + load options (see below). |
+| `style` | `StyleProp<ViewStyle>` | Standard view style. |
+| `onLoad` | `(e) => void` | File loaded. `{ url }`. |
+| `onProgress` | `(e) => void` | ~1×/sec. `{ position, duration, progress, cacheSeconds }`. |
+| `onPlaybackStateChange` | `(e) => void` | Partial state: `{ isPaused?, isPlaying?, isLoading?, isReadyToSeek? }`. |
+| `onTracksReady` | `(e) => void` | Tracks are enumerable; query them via the ref. |
+| `onError` | `(e) => void` | `{ error }`. |
+| `onPictureInPictureChange` | `(e) => void` | Reserved — PiP is not implemented yet. |
+
+### `VideoSource`
+
+```ts
+interface VideoSource {
+  url: string;
+  headers?: Record<string, string>;
+  externalSubtitles?: string[];
+  startPosition?: number;       // seconds
+  autoplay?: boolean;           // default true
+  initialAudioId?: number;
+  initialSubtitleId?: number;
+  cacheConfig?: {
+    enabled?: 'auto' | 'yes' | 'no';
+    cacheSeconds?: number;
+    maxBytes?: number;
+    maxBackBytes?: number;
+  };
+  voDriver?: 'gpu-next' | 'gpu'; // Android only
+}
+```
+
+### Imperative methods (via `ref`)
+
+All return a `Promise`.
+
+- **Transport:** `play()`, `pause()`, `seekTo(seconds)`, `seekBy(seconds)`,
+  `setSpeed(rate)`, `getSpeed()`, `isPaused()`, `getCurrentPosition()`, `getDuration()`
+- **Audio:** `getAudioTracks()`, `setAudioTrack(id)`, `getCurrentAudioTrack()`
+- **Subtitles:** `getSubtitleTracks()`, `setSubtitleTrack(id)`, `disableSubtitles()`,
+  `getCurrentSubtitleTrack()`, `addSubtitleFile(url, select?)`
+- **Video:** `setZoomedToFill(zoom)`, `isZoomedToFill()`
+- **Diagnostics:** `getTechnicalInfo()` → `{ videoWidth, videoHeight, videoCodec,
+  audioCodec, fps, videoBitrate, audioBitrate, cacheSeconds, droppedFrames, voDriver,
+  hwdec }`
+
+Full type definitions ship with the package.
+
+## Known limitations
+
+- **Picture‑in‑Picture is not implemented yet** (the LGPL rendering path doesn't feed
+  AVKit/Android PiP cleanly). Planned post‑1.0.
+- **Android requires API 26+.** The native libraries don't support older devices.
+- **Binary size:** the native engine adds roughly **10–14 MB per ABI**. Trim with
+  `androidAbiFilters` and ship an Android App Bundle so Play delivers per-device ABIs.
+- **No web playback** (stubs only).
+
+## Licensing
+
+The wrapper code in this repository is **MIT** (see [`LICENSE`](./LICENSE)).
+
+This package **bundles mpv and FFmpeg under the LGPL** (v3 via MPVKit on iOS; an
+LGPL FFmpeg build on Android). See [`NOTICE`](./NOTICE) for attributions, versions, and
+the written offer of source for those components.
+
+If you ship this in a **closed-source** app, the LGPL applies to the bundled mpv/FFmpeg
+libraries: keep them dynamically linkable/replaceable, reproduce the attribution notice
+(e.g. an in-app licenses screen), and don't obfuscate the libraries. Your own
+application code stays proprietary.
+
+> ⚠️ **Not legal advice.** Codec **patent** licensing (e.g. HEVC, AAC) is a separate
+> concern from the open-source license. If you distribute a commercial app, get a legal
+> review.
+
+## Acknowledgements
+
+Built on [mpv](https://github.com/mpv-player/mpv) and
+[FFmpeg](https://ffmpeg.org/). iOS binaries via
+[MPVKit](https://github.com/mpvkit/MPVKit); Android libmpv tooling derived from
+[libmpv-android](https://github.com/jarnedemeulemeester/libmpv-android). Architecture
+informed by [Streamyfin](https://github.com/streamyfin/streamyfin),
+[Swiftfin](https://github.com/jellyfin/Swiftfin), and
+[Findroid](https://github.com/jarnedemeulemeester/findroid).
+
+## Contributing
+
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md). In short: branch per change, Conventional
+Commits, squash-and-merge, SemVer with `-rc.N` prereleases.
+
+## License
+
+[MIT](./LICENSE) (wrapper) · bundled mpv/FFmpeg under LGPL — see [`NOTICE`](./NOTICE).
