@@ -56,6 +56,22 @@ cd "$SRC_DIR/buildscripts"
 FFMPEG_SH="scripts/ffmpeg.sh"
 MPV_SH="scripts/mpv.sh"
 
+# --- Pin the NDK to match React Native's (avoid a libc++ ABI skew) ------------
+# Upstream depinfo.sh pins a bleeding-edge NDK (v1.0.0 -> r29 / clang 21). The
+# resulting libmpv.so then references libc++ symbols (e.g.
+# std::__from_chars_floating_point<float>) that are ABSENT from the older libc++
+# a React Native app bundles (RN 0.85 -> NDK r27 / clang 18). At runtime the app
+# packages RN's libc++_shared.so and `dlopen(libmpv.so)` fails with
+# UnsatisfiedLinkError, so MpvPlayerView never instantiates. Building libmpv with
+# RN's NDK keeps it within that older libc++'s symbol set, so the .so loads in a
+# stock app. Verified empirically (verification/android/g2b-libcxx-skew.txt).
+# Bump this only in lockstep with React Native's bundled NDK.
+NDK_VERSION="${NDK_VERSION:-27.1.12297006}"
+[[ -f include/depinfo.sh ]] || { echo "ERROR: include/depinfo.sh missing — pin a known --ref." >&2; exit 1; }
+sed -i.bak "s/^v_ndk=.*/v_ndk=$NDK_VERSION/" include/depinfo.sh
+grep -q "^v_ndk=$NDK_VERSION\$" include/depinfo.sh || { echo "ERROR: failed to pin v_ndk to $NDK_VERSION" >&2; exit 1; }
+echo "==> Pinned NDK to $NDK_VERSION (React-Native-compatible libc++)"
+
 # --- Download sources + SDK/NDK, apply upstream patches -----------------------
 # download.sh installs the SDK/NDK and OS deps (Linux) and fetches sources.
 ./download.sh

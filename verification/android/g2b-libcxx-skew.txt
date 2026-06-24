@@ -1,0 +1,18 @@
+# libc++ / NDK skew diagnostic (Android runtime load failure)
+
+## The runtime error (standard AAR + standard RN app)
+```
+java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol
+  "_ZNSt6__ndk127__from_chars_floating_pointIfEE..." referenced by libmpv.so
+  at expo.modules.mpvplayer.MpvLib.<init>(MpvLib.kt:48)
+  -> ExpoModulesCore: Couldn't create view of type ...MpvPlayerView
+```
+
+## Root cause (demangled: std::__from_chars_floating_point<float>)
+- AAR libmpv.so built with: Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) clang version 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)
+- AAR's bundled libc++_shared.so EXPORTS the symbol (count): 2
+- App packaged RN's NDK r27 (clang 18) libc++_shared.so, which EXPORTS (count): 0
+- NDK r27 libc++ at $NDK exports (count): 0
+
+AGP packaged the OLDER (RN r27) libc++_shared.so over the AAR's newer one,
+so libmpv.so (clang 21) cannot resolve a symbol only present in clang>=21 libc++.

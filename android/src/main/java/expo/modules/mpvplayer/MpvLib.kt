@@ -18,6 +18,7 @@ object MpvFormat {
 /** mpv event ids we care about (see libmpv `client.h`). */
 object MpvEvent {
   const val SHUTDOWN = 1
+  const val START_FILE = 6
   const val END_FILE = 7
   const val FILE_LOADED = 8
   const val SEEK = 20

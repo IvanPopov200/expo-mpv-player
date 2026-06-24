@@ -1,0 +1,6 @@
+# Stock r27 AAR loads in a standard RN app (no libc++ swap)
+## libmpv/libplayer dlopen (nativeloader):
+Load /data/app/~~WF8qjp1sKHTI37HOnBKtNw==/com.expompvplayer.example-Kg22kbBdRat0XbiU4KAulA==/base.apk!/lib/arm64-v8a/libmpv.so: ok
+Load /data/app/~~WF8qjp1sKHTI37HOnBKtNw==/com.expompvplayer.example-Kg22kbBdRat0XbiU4KAulA==/base.apk!/lib/arm64-v8a/libplayer.so: ok
+## UnsatisfiedLinkError / view-create failures (want: none):
+count = 0

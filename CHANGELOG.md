@@ -31,6 +31,25 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
   **G7 verified** on iOS. (Android: wrapper lacks the END_FILE reason — documented.)
 - **iOS teardown races (P1-F):** serialized, idempotent `invalidate()`.
   **G3 stress verified** (20 mount/unmount cycles, no crash).
+- **Android compile + `compileSdk`/`minSdk` (G2):** the module declared no
+  `compileSdk` (newer AGP hard-fails); now uses Expo's
+  `useDefaultAndroidSdkVersions()`. The config plugin raises consumer
+  `android.minSdkVersion` to ≥ 26 (libmpv requires API 26). The example assembles
+  with the LGPL AAR linked — libmpv/FFmpeg `.so`s + module classes verified in the
+  APK (`verification/android/g2-compile.md`).
+- **Android runtime libc++/NDK skew (critical):** the AAR was built with NDK r29
+  (clang 21), so `libmpv.so` referenced libc++ symbols absent from the NDK r27
+  (clang 18) `libc++_shared.so` a React Native app bundles → runtime
+  `UnsatisfiedLinkError`, view never loads. The AAR build now pins the NDK to RN's
+  r27 (`android/libmpv-build/build-lgpl-aar.sh`); the rebuilt stock AAR `dlopen`s
+  clean. **Android G3/G4/G6/G7 verified** on an emulator against the unpatched app
+  (`verification/android/g3-g4-g6-g7-runtime.md`).
+- **Android `onError` (P1-E):** the JNI wrapper's `EventObserver.event(int)`
+  carries no end-file reason, so `MPVRenderer` now infers a load failure from
+  event ordering (`START_FILE` → `END_FILE` before `FILE_LOADED`, with a
+  `pendingReplace` guard against reload false-positives) and fires `onError`.
+  **G7 verified** on Android (generic message; iOS still surfaces mpv's exact
+  reason string).
 - **Security:** `tls-verify` is no longer forced off; certificates are validated
   by default, opt out per source via `VideoSource.allowSelfSignedTls`.
 - Removed a dead `track-list/count` property observer.
@@ -45,8 +64,12 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
 
 - **iOS:** builds, links, renders, headers, onError, teardown — verified on the
   simulator. G5 (hardware decode) needs a physical device.
-- **Android:** LGPL **G1 proven**; Kotlin sources complete + API-audited; the AAR
-  binary and on-device runtime (G2–G7) are pending an Android-toolchain run.
+- **Android:** **G1–G4, G6, G7 proven.** LGPL provenance (G1); the example
+  assembles & links the AAR (G2); on a stock r27 AAR (no libc++ swap), `gpu-next`
+  **renders** `sample.mp4` (G4), the exact comma-bearing auth header reaches the
+  server (G6), and a 401 fires **`onError`** (G7). Verified on an arm64
+  Android-36 emulator. **G5 (hardware decode) needs a physical device** — the only
+  open gate on either platform. See `verification/STATUS.md`.
 
 ## [0.1.0] — First release
 
