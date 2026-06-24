@@ -157,6 +157,15 @@ export interface MpvPlayerViewRef {
   // video scaling
   setZoomedToFill(zoom: boolean): Promise<void>;
   isZoomedToFill(): Promise<boolean>;
+  // subtitle styling & a/v sync
+  /** Subtitle size multiplier (mpv `sub-scale`); `1` is default. */
+  setSubtitleScale(scale: number): Promise<void>;
+  /** Vertical subtitle position (mpv `sub-pos`), `0`–`150` (`100` = bottom). */
+  setSubtitlePosition(position: number): Promise<void>;
+  /** Subtitle timing offset in seconds (mpv `sub-delay`). */
+  setSubtitleDelay(seconds: number): Promise<void>;
+  /** Audio timing offset in seconds (mpv `audio-delay`). */
+  setAudioDelay(seconds: number): Promise<void>;
   // diagnostics
   getTechnicalInfo(): Promise<TechnicalInfo>;
   // reserved for a later milestone (no-ops until PiP lands)

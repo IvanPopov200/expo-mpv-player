@@ -111,6 +111,13 @@ public final class MpvPlayerView: ExpoView, MPVRendererDelegate {
   func setZoomedToFill(_ zoom: Bool) { renderer?.setZoomedToFill(zoom) }
   func isZoomedToFill() -> Bool { renderer?.isZoomedToFill() ?? false }
 
+  // MARK: - Subtitle styling & A/V sync
+
+  func setSubtitleScale(_ scale: Double) { renderer?.setSubtitleScale(scale) }
+  func setSubtitlePosition(_ position: Double) { renderer?.setSubtitlePosition(position) }
+  func setSubtitleDelay(_ seconds: Double) { renderer?.setSubtitleDelay(seconds) }
+  func setAudioDelay(_ seconds: Double) { renderer?.setAudioDelay(seconds) }
+
   // MARK: - Diagnostics
 
   func getTechnicalInfo() -> [String: Any] {

@@ -123,6 +123,16 @@ class MpvPlayerView(context: Context, appContext: AppContext) :
 
   fun isZoomedToFill(): Boolean = renderer.isZoomedToFill()
 
+  // MARK: - Subtitle styling & A/V sync
+
+  fun setSubtitleScale(scale: Double) = renderer.setSubtitleScale(scale)
+
+  fun setSubtitlePosition(position: Double) = renderer.setSubtitlePosition(position)
+
+  fun setSubtitleDelay(seconds: Double) = renderer.setSubtitleDelay(seconds)
+
+  fun setAudioDelay(seconds: Double) = renderer.setAudioDelay(seconds)
+
   // MARK: - Diagnostics
 
   fun getTechnicalInfo(): Map<String, Any?> {

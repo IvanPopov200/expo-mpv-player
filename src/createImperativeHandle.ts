@@ -29,6 +29,10 @@ export interface NativeMpvViewRef {
   addSubtitleFile(url: string, select?: boolean): Promise<void>;
   setZoomedToFill(zoom: boolean): Promise<void>;
   isZoomedToFill(): Promise<boolean>;
+  setSubtitleScale(scale: number): Promise<void>;
+  setSubtitlePosition(position: number): Promise<void>;
+  setSubtitleDelay(seconds: number): Promise<void>;
+  setAudioDelay(seconds: number): Promise<void>;
   getTechnicalInfo(): Promise<TechnicalInfo>;
   startPictureInPicture(): Promise<void>;
   stopPictureInPicture(): Promise<void>;
@@ -94,6 +98,15 @@ export function createImperativeHandle(
     setZoomedToFill: (zoom) =>
       call("setZoomedToFill", (n) => n.setZoomedToFill(zoom)),
     isZoomedToFill: () => call("isZoomedToFill", (n) => n.isZoomedToFill()),
+    // subtitle styling & a/v sync
+    setSubtitleScale: (scale) =>
+      call("setSubtitleScale", (n) => n.setSubtitleScale(scale)),
+    setSubtitlePosition: (position) =>
+      call("setSubtitlePosition", (n) => n.setSubtitlePosition(position)),
+    setSubtitleDelay: (seconds) =>
+      call("setSubtitleDelay", (n) => n.setSubtitleDelay(seconds)),
+    setAudioDelay: (seconds) =>
+      call("setAudioDelay", (n) => n.setAudioDelay(seconds)),
     // diagnostics
     getTechnicalInfo: () =>
       call("getTechnicalInfo", (n) => n.getTechnicalInfo()),

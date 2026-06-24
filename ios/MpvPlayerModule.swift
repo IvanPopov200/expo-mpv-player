@@ -64,6 +64,20 @@ public class MpvPlayerModule: Module {
       }
       AsyncFunction("isZoomedToFill") { (view: MpvPlayerView) -> Bool in view.isZoomedToFill() }
 
+      // Subtitle styling & A/V sync
+      AsyncFunction("setSubtitleScale") { (view: MpvPlayerView, scale: Double) in
+        view.setSubtitleScale(scale)
+      }
+      AsyncFunction("setSubtitlePosition") { (view: MpvPlayerView, position: Double) in
+        view.setSubtitlePosition(position)
+      }
+      AsyncFunction("setSubtitleDelay") { (view: MpvPlayerView, seconds: Double) in
+        view.setSubtitleDelay(seconds)
+      }
+      AsyncFunction("setAudioDelay") { (view: MpvPlayerView, seconds: Double) in
+        view.setAudioDelay(seconds)
+      }
+
       // Diagnostics
       AsyncFunction("getTechnicalInfo") { (view: MpvPlayerView) -> [String: Any] in
         view.getTechnicalInfo()
