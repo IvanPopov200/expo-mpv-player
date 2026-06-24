@@ -26,6 +26,12 @@ export interface VideoSource {
   cacheConfig?: CacheConfig;
   /** Android-only video output driver. Default `'gpu-next'`. */
   voDriver?: VoDriver;
+  /**
+   * Allow self-signed / unverified TLS certificates for this source (mpv
+   * `tls-verify=no`). Default `false` — certificates are validated. Enable only
+   * for a trusted LAN server with a self-signed cert.
+   */
+  allowSelfSignedTls?: boolean;
 }
 
 export interface CacheConfig {
