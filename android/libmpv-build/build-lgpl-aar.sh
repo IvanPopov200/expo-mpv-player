@@ -82,16 +82,20 @@ fi
 grep -q -- '-Dgpl=false' "$MPV_SH" || { echo "ERROR: failed to set -Dgpl=false in mpv meson" >&2; exit 1; }
 
 # --- Build --------------------------------------------------------------------
+# Build the native engine per ABI, then assemble ONLY the :libmpv AAR. We do NOT
+# run the upstream `mpv-android` assemble (it also builds the demo app, whose
+# CMake hard-requires every ABI and fails if we built a subset). The :libmpv
+# module gracefully omits ABIs without a libmpv.so.
 echo "==> Building (slow — tens of minutes)"
-if [[ -z "$ARCHS" ]]; then
-  ./build.sh                       # all archs + assemble the AAR (mpv-android)
-else
-  for a in $ARCHS; do ./build.sh --arch "$a" mpv; done
-  ./build.sh -n mpv-android        # assemble using the built jniLibs
-fi
+BUILD_ARCHS="${ARCHS:-arm64 x86_64}"
+for a in $BUILD_ARCHS; do ./build.sh --arch "$a" mpv; done
 
-# --- Verify LGPL from BUILD OUTPUT (fail-closed) ------------------------------
-"$SCRIPT_DIR/verify-lgpl.sh" "$SRC_DIR"
+# --- Verify LGPL from BUILD OUTPUT (fail-closed) BEFORE assembling ------------
+"$SCRIPT_DIR/verify-lgpl.sh" "$SRC_DIR" "$REPO_ROOT/verification/lgpl"
+
+# --- Assemble only the LGPL AAR -----------------------------------------------
+echo "==> Assembling :libmpv AAR"
+( cd "$SRC_DIR" && ./gradlew :libmpv:assembleRelease )
 
 # --- Copy out the AAR ---------------------------------------------------------
 mkdir -p "$OUT_DIR"
