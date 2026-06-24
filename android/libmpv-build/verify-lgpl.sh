@@ -53,7 +53,10 @@ while IFS= read -r cfg; do
 done < "$tmp"
 
 # --- 2. mpv meson resolved option gpl=false -----------------------------------
-find "$ROOT" -path '*mpv*' -name intro-buildoptions.json 2>/dev/null > "$tmp" || true
+# Match ONLY mpv's own build dir (deps/mpv/...), not the whole libmpv-android
+# tree (which would pick up dav1d/freetype/etc. meson files that have no gpl
+# option and yield false failures).
+find "$ROOT" -path '*/deps/mpv/*' -name intro-buildoptions.json 2>/dev/null > "$tmp" || true
 if [ ! -s "$tmp" ]; then
   echo "FAIL: no mpv meson intro-buildoptions.json — the mpv build did not complete (fail-closed)."
   exit 1
