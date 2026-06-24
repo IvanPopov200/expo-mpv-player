@@ -1,0 +1,9 @@
+# Media samples are large and not redistributable — never commit them.
+assets/*
+!assets/.gitkeep
+# Keep all evidence (logs, screenshots, captured JSON).
+!*.txt
+!*.log
+!*.png
+!*.json
+!*.md

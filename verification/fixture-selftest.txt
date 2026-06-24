@@ -1,0 +1,18 @@
+Fixture server self-test (proves the G6/G7 harness is deterministic).
+This validates the FIXTURE, not the player — the player-side G6/G7 gates still
+require the app to render and load these routes.
+
+Sample: verification/assets/sample.mp4 (15064 bytes, H.264 testsrc, gitignored)
+Command: node example/scripts/fixture-server.mjs --port 8099
+
+Route checks (curl):
+  /ok   WITH   'MediaBrowser Client="ExpoMpvPlayer", Token="fixture-token-123"'  -> 200
+  /ok   WITHOUT auth                                                             -> 401
+  /ok   WITH comma-stripped auth 'MediaBrowser Client="x" Token="y"'             -> 401
+  /unauth                                                                        -> 401
+  /notfound                                                                      -> 404
+
+/log captured the exact Authorization values, confirming the comma is preserved
+end-to-end at the HTTP layer (the 200 case) and that a corrupted header is
+rejected (the comma-stripped 401 case) — which is exactly what the player-side
+header-encoding fix (P1-D) must satisfy.

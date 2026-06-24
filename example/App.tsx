@@ -22,6 +22,12 @@ import {
 // players reject. Replace with your own server URL + Authorization header.
 const DEFAULT_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
 
+// Fixture server (example/scripts/fixture-server.mjs) for the G6/G7 gates.
+// On a simulator, localhost reaches the host Mac. On a physical device, set this
+// to the Mac's LAN IP (e.g. http://192.168.1.x:8099).
+const FIXTURE_BASE = "http://localhost:8099";
+const FIXTURE_AUTH = 'MediaBrowser Client="ExpoMpvPlayer", Token="fixture-token-123"';
+
 export default function App() {
   const ref = useRef<MpvPlayerViewRef>(null);
   const [url, setUrl] = useState(DEFAULT_URL);
@@ -33,15 +39,44 @@ export default function App() {
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const [subScale, setSubScale] = useState(1);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const load = () => {
     setStatus("loading");
+    setLastError(null);
     setSource({
       url: url.trim(),
       headers: authHeader.trim() ? { Authorization: authHeader.trim() } : undefined,
       autoplay: true,
     });
   };
+
+  // Load a fixture-server route (G6/G7 evidence). `withAuth` sends the exact
+  // comma-bearing Authorization header the header-encoding fix must preserve.
+  const loadFixture = (route: string, withAuth: boolean) => {
+    setStatus(`loading ${route}`);
+    setLastError(null);
+    setSource({
+      url: `${FIXTURE_BASE}${route}`,
+      headers: withAuth ? { Authorization: FIXTURE_AUTH } : undefined,
+      autoplay: true,
+    });
+  };
+
+  // Dump diagnostics to the console with a grep-able prefix (G4–G7 evidence).
+  const copyTechInfo = useCallback(async () => {
+    let info: TechnicalInfo | null = null;
+    try {
+      info = (await ref.current?.getTechnicalInfo()) ?? null;
+    } catch {
+      info = null;
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      `[MPV-EVIDENCE] ${JSON.stringify({ status, tech: info, progress, lastError })}`,
+    );
+    setStatus("tech info dumped to console");
+  }, [status, progress, lastError]);
 
   const refreshTech = useCallback(async () => {
     try {
@@ -85,7 +120,12 @@ export default function App() {
               setStatus(`state: ${JSON.stringify(e.nativeEvent)}`)
             }
             onProgress={(e) => setProgress(e.nativeEvent)}
-            onError={(e) => setStatus(`error: ${e.nativeEvent.error}`)}
+            onError={(e) => {
+              setLastError(e.nativeEvent.error);
+              setStatus(`error: ${e.nativeEvent.error}`);
+              // eslint-disable-next-line no-console
+              console.log(`[MPV-EVIDENCE] onError ${JSON.stringify(e.nativeEvent)}`);
+            }}
             onTracksReady={onTracksReady}
           />
         ) : (
@@ -124,6 +164,17 @@ export default function App() {
           <Btn label="-30s" onPress={() => ref.current?.seekBy(-30)} />
           <Btn label="+30s" onPress={() => ref.current?.seekBy(30)} />
           <Btn label="Tracks" onPress={refreshTracks} />
+        </View>
+
+        <Text style={styles.label}>Fixture server (G6/G7 evidence)</Text>
+        <View style={styles.row}>
+          <Btn label="/ok +auth" onPress={() => loadFixture("/ok", true)} />
+          <Btn label="/ok no-auth" onPress={() => loadFixture("/ok", false)} />
+        </View>
+        <View style={styles.row}>
+          <Btn label="/unauth (401)" onPress={() => loadFixture("/unauth", true)} />
+          <Btn label="/notfound" onPress={() => loadFixture("/notfound", true)} />
+          <Btn label="Copy tech info" onPress={copyTechInfo} />
         </View>
 
         {audioTracks.length > 0 ? (
