@@ -8,7 +8,9 @@ doesn't have to transcode.
 
 > **Status:** pre‑1.0, under active development. The public API (the `source` prop,
 > events, and ref methods) is stabilizing but may still change before `1.0.0`.
-> Prereleases are published under the `next` npm dist‑tag.
+> Release candidates are tagged in git (`v0.1.0-rc.N`); npm prereleases publish
+> under the `next` dist‑tag and the first `latest` publish follows a verified
+> native build (see [Building the native engines](#building-the-native-engines)).
 
 ---
 
@@ -94,6 +96,26 @@ npx expo run:ios      # or: npx expo run:android
 | `androidAbiFilters` | `["arm64-v8a", "x86_64"]` | Native ABIs to bundle. Fewer = smaller app. |
 | `enableCleartextTraffic` | `false` | Allow plain HTTP (e.g. a LAN server). Opt in deliberately. |
 | `defaultVoDriver` | `"gpu-next"` | Android video output driver (`gpu-next` or `gpu`). |
+
+## Building the native engines
+
+This package ships **LGPL** builds of mpv/FFmpeg on both platforms (the clean
+license boundary is the whole point — see [Licensing](#licensing)).
+
+- **iOS** links the LGPL `MPVKit` Swift Package. The config plugin adds it to your
+  prebuilt Xcode project; static frameworks are required. Details and the
+  fallback (vendored xcframeworks) are in
+  [`docs/ios-integration.md`](./docs/ios-integration.md).
+- **Android** links a custom **LGPL** `libmpv` AAR you build from the public
+  scripts in [`android/libmpv-build/`](./android/libmpv-build/) (FFmpeg without
+  `--enable-gpl`; mpv `--enable-lgpl`). The prebuilt GPL Maven artifact is never
+  used. The AAR is a native binary produced by
+  [`android-aar.yml`](./.github/workflows/android-aar.yml) (or the script
+  locally) on a machine with the Android NDK — it is not committed to git.
+
+CI runs lint/typecheck/tests and a license check that rejects any GPL engine
+path on every PR; the heavier example-app native builds run on demand via
+[`native-build.yml`](./.github/workflows/native-build.yml).
 
 ## Quick start
 
@@ -181,6 +203,8 @@ All return a `Promise`.
 - **Audio:** `getAudioTracks()`, `setAudioTrack(id)`, `getCurrentAudioTrack()`
 - **Subtitles:** `getSubtitleTracks()`, `setSubtitleTrack(id)`, `disableSubtitles()`,
   `getCurrentSubtitleTrack()`, `addSubtitleFile(url, select?)`
+- **Subtitle styling & A/V sync:** `setSubtitleScale(scale)`,
+  `setSubtitlePosition(position)`, `setSubtitleDelay(seconds)`, `setAudioDelay(seconds)`
 - **Video:** `setZoomedToFill(zoom)`, `isZoomedToFill()`
 - **Diagnostics:** `getTechnicalInfo()` → `{ videoWidth, videoHeight, videoCodec,
   audioCodec, fps, videoBitrate, audioBitrate, cacheSeconds, droppedFrames, voDriver,
