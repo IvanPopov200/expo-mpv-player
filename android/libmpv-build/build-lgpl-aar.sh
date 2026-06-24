@@ -82,16 +82,32 @@ fi
 grep -q -- '-Dgpl=false' "$MPV_SH" || { echo "ERROR: failed to set -Dgpl=false in mpv meson" >&2; exit 1; }
 
 # --- Build --------------------------------------------------------------------
+# Build the native engine per ABI, then assemble ONLY the :libmpv AAR (not the
+# upstream `mpv-android` target, which also builds the demo app).
 echo "==> Building (slow — tens of minutes)"
-if [[ -z "$ARCHS" ]]; then
-  ./build.sh                       # all archs + assemble the AAR (mpv-android)
-else
-  for a in $ARCHS; do ./build.sh --arch "$a" mpv; done
-  ./build.sh -n mpv-android        # assemble using the built jniLibs
-fi
+BUILD_ARCHS="${ARCHS:-arm64 x86_64}"
+for a in $BUILD_ARCHS; do ./build.sh --arch "$a" mpv; done
 
-# --- Verify LGPL from BUILD OUTPUT (fail-closed) ------------------------------
-"$SCRIPT_DIR/verify-lgpl.sh" "$SRC_DIR"
+# Restrict the :libmpv module's CMake to exactly the ABIs we built. Without this,
+# AGP builds libplayer.so for all 4 default ABIs and fails on the ones we skipped
+# (their libmpv.so doesn't exist). Map upstream arch names -> Android ABI names.
+declare -A ABI_MAP=([arm64]=arm64-v8a [x86_64]=x86_64 [armv7l]=armeabi-v7a [x86]=x86)
+abi_csv=""
+for a in $BUILD_ARCHS; do abi_csv="$abi_csv\"${ABI_MAP[$a]}\", "; done
+abi_csv="${abi_csv%, }"
+GRADLE_KTS="$SRC_DIR/libmpv/build.gradle.kts"
+if ! grep -q 'abiFilters' "$GRADLE_KTS"; then
+  sed -i.bak "s/        minSdk = 26/        minSdk = 26\n        ndk { abiFilters += listOf($abi_csv) }/" "$GRADLE_KTS"
+fi
+grep -q 'abiFilters' "$GRADLE_KTS" || { echo "ERROR: failed to inject abiFilters into $GRADLE_KTS" >&2; exit 1; }
+echo "==> :libmpv ABIs restricted to: $abi_csv"
+
+# --- Verify LGPL from BUILD OUTPUT (fail-closed) BEFORE assembling ------------
+"$SCRIPT_DIR/verify-lgpl.sh" "$SRC_DIR" "$REPO_ROOT/verification/lgpl"
+
+# --- Assemble only the LGPL AAR -----------------------------------------------
+echo "==> Assembling :libmpv AAR"
+( cd "$SRC_DIR" && ./gradlew :libmpv:assembleRelease )
 
 # --- Copy out the AAR ---------------------------------------------------------
 mkdir -p "$OUT_DIR"
