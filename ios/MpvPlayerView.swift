@@ -74,6 +74,9 @@ public final class MpvPlayerView: ExpoView, MPVRendererDelegate {
       config.maxBytes = numberToInt(cache["maxBytes"])
       config.maxBackBytes = numberToInt(cache["maxBackBytes"])
     }
+    if let allowSelfSigned = source["allowSelfSignedTls"] as? Bool {
+      config.allowSelfSignedTls = allowSelfSigned
+    }
     return config
   }
 

@@ -20,6 +20,7 @@ data class MpvLoadConfig(
   val maxBytes: Int? = null,
   val maxBackBytes: Int? = null,
   val voDriver: String = "gpu-next",
+  val allowSelfSignedTls: Boolean = false,
 )
 
 data class MpvTrack(
@@ -89,7 +90,7 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
     mpv.setOption("opengl-es", "yes")
     mpv.setOption("hwdec", if (isEmulator()) "no" else "mediacodec-copy")
     mpv.setOption("hwdec-codecs", "h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1")
-    mpv.setOption("tls-verify", "no")
+    // tls-verify is set per-source in load() — secure (validating) by default.
     mpv.setOption("cache", "yes")
     mpv.setOption("demuxer-max-bytes", "64MiB")
     mpv.setOption("force-window", "no")
@@ -109,7 +110,6 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
     mpv.observe("pause", MpvFormat.FLAG)
     mpv.observe("paused-for-cache", MpvFormat.FLAG)
     mpv.observe("demuxer-cache-duration", MpvFormat.DOUBLE)
-    mpv.observe("track-list/count", MpvFormat.INT64)
     mpv.observe("eof-reached", MpvFormat.FLAG)
   }
 
@@ -143,6 +143,8 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
     config.maxBytes?.let { mpv.setString("demuxer-max-bytes", it.toString()) }
     config.maxBackBytes?.let { mpv.setString("demuxer-max-back-bytes", it.toString()) }
     config.startPosition?.takeIf { it > 0 }?.let { mpv.setString("start", it.toString()) }
+    // TLS: validate certs by default; only disable for an opted-in source.
+    mpv.setString("tls-verify", if (config.allowSelfSignedTls) "no" else "yes")
 
     mpv.setBoolean("pause", !config.autoplay)
     pendingConfig = config

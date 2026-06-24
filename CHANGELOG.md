@@ -7,6 +7,47 @@ derived from Conventional Commit subjects merged to `main`.
 
 ## [Unreleased]
 
+Remediation round driven by a code review, under an Evidence-Gated Claims rule
+(a runtime behavior is only called "verified" when its gate artifact lives in
+`verification/`). See `verification/STATUS.md` for the live gate matrix.
+
+### Fixed
+
+- **Android LGPL build (critical):** the build script did not actually strip GPL
+  — its `sed` targeted `--enable-gpl`, but upstream uses the brace form
+  `--enable-{gpl,version3}`, and it set a nonexistent mpv `-Dlgpl`. Rewritten
+  against the real upstream (pinned `v1.0.0`): strip `gpl` from the brace, add
+  `-Dgpl=false` to mpv's meson, fail-closed verifier. **G1 PROVEN** from a real
+  CI build: FFmpeg `CONFIG_GPL 0` + mpv `gpl=false`
+  (`verification/lgpl/verify-output.txt`).
+- **iOS render (P0-C):** the view did not render — react-native 0.85.3's bundled
+  `react-native-renderer` requires exactly react 19.2.3 (the app had 19.2.7).
+  Pinned react 19.2.3. **G4 verified** (`verification/ios/g4-render.png`).
+- **`mpv_command` C-interop bug** (iOS) — caught by compiling against real libmpv.
+- **Auth headers (P1-D):** set `http-header-fields` via `change-list … append`
+  (comma-safe) instead of comma-joining; property API for post-init options.
+  **G6 verified** on iOS.
+- **`onError` (P1-E):** iOS now fires `onError` on `MPV_END_FILE_REASON_ERROR`.
+  **G7 verified** on iOS. (Android: wrapper lacks the END_FILE reason — documented.)
+- **iOS teardown races (P1-F):** serialized, idempotent `invalidate()`.
+  **G3 stress verified** (20 mount/unmount cycles, no crash).
+- **Security:** `tls-verify` is no longer forced off; certificates are validated
+  by default, opt out per source via `VideoSource.allowSelfSignedTls`.
+- Removed a dead `track-list/count` property observer.
+
+### Added
+
+- `verification/` evidence harness: gate ladder, a deterministic fixture server
+  (comma-bearing auth + error routes), example capture helpers, committed
+  artifacts.
+
+### Status (honest)
+
+- **iOS:** builds, links, renders, headers, onError, teardown — verified on the
+  simulator. G5 (hardware decode) needs a physical device.
+- **Android:** LGPL **G1 proven**; Kotlin sources complete + API-audited; the AAR
+  binary and on-device runtime (G2–G7) are pending an Android-toolchain run.
+
 ## [0.1.0] — First release
 
 The complete, source-finished v1 surface across all milestones (M0–M5): a
@@ -83,9 +124,9 @@ example harness, CI, and licensing deliverables.
   - `MpvPlayerModule` — full view-scoped AsyncFunction surface + `OnViewDestroys`
     cleanup. PiP methods are no-ops (v1).
 - `android/libmpv-build/`: public LGPL AAR build scripts (`build-lgpl-aar.sh`,
-  `verify-lgpl.sh`) that patch FFmpeg to drop the GPL flag (`--enable-version3`)
-  and mpv to `--enable-lgpl`, then verify the result — both a build recipe and
-  the LGPL source-availability deliverable.
+  `verify-lgpl.sh`) — both a build recipe and the LGPL source-availability
+  deliverable. (The initial versions had bugs that left GPL enabled; corrected
+  and proven in [Unreleased].)
 - `.github/workflows/android-aar.yml`: on-demand/scheduled heavy build that
   produces and LGPL-verifies the AAR and uploads it as an artifact.
 - `android/src/main/assets/README.md`: documents the required `subfont.ttf`.
