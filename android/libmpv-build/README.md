@@ -20,27 +20,32 @@ whatever FFmpeg/mpv were built as. That is exactly why this build exists.
 
 ## Requirements
 
-Run on a machine or CI runner with the Android native toolchain:
-
-- Android NDK **r29.x** (`ANDROID_NDK_HOME` or `ANDROID_NDK_ROOT`)
-- CMake 4.x, Ninja, Meson, nasm/yasm, pkg-config, autoconf, libtool, python3
-- git, curl, bash 4+
+Run on **Linux** (this is what upstream supports). Upstream's `download.sh`
+installs the Android SDK/NDK and the OS build deps for you on Debian/Ubuntu and
+RHEL/Fedora, so the only hard prerequisites are `git`, `curl`, `bash`, and
+`python3` (the GitHub `ubuntu-latest` runner is the reference environment).
 
 ## Build
 
 ```sh
-ANDROID_NDK_HOME=/path/to/ndk ./build-lgpl-aar.sh --abis arm64-v8a,x86_64
+./build-lgpl-aar.sh                      # all archs, assembles the AAR
+./build-lgpl-aar.sh --archs "arm64 x86_64"   # subset (upstream arch names)
+./build-lgpl-aar.sh --ref v1.0.0         # pin a different libmpv-android tag
 ```
 
 This:
 
-1. Clones the upstream `jarnedemeulemeester/libmpv-android` buildscripts at a
-   pinned ref.
-2. Patches the FFmpeg config to LGPL (removes the GPL flag, ensures
-   `--enable-version3`, drops GPL-only externals) and mpv to `--enable-lgpl`.
-3. Builds for the requested ABIs (`arm64-v8a` + `x86_64` by default).
-4. Runs `verify-lgpl.sh` to confirm the produced FFmpeg reports `CONFIG_GPL 0`.
-5. Copies the result to `android/libs/expo-mpv-player-libmpv-lgpl-<version>.aar`.
+1. Clones `jarnedemeulemeester/libmpv-android` at the **pinned** ref
+   (default `v1.0.0`).
+2. Runs upstream `download.sh` (SDK/NDK + sources) and `patch.sh`.
+3. Patches the build to **LGPL**, fail-closed:
+   - FFmpeg `ffmpeg.sh`: `--enable-{gpl,version3}` → `--enable-version3`, then
+     asserts no `gpl` token remains in any `--enable{…}` group.
+   - mpv `mpv.sh`: adds **`-Dgpl=false`** to `meson setup` (mpv's `gpl` option
+     defaults to `true`; there is **no** `-Dlgpl`).
+4. Builds (upstream `build.sh`) and assembles the AAR.
+5. Runs `verify-lgpl.sh` (below) and **fails** unless it passes.
+6. Copies the result to `android/libs/expo-mpv-player-libmpv-lgpl-<version>.aar`.
 
 Then enable the dependency in `android/build.gradle`:
 
@@ -48,17 +53,21 @@ Then enable the dependency in `android/build.gradle`:
 implementation files('libs/expo-mpv-player-libmpv-lgpl-<version>.aar')
 ```
 
-## Verify only
+## Verify only (build-output authoritative, fail-closed)
 
 ```sh
-./verify-lgpl.sh .work/libmpv-android
+./verify-lgpl.sh .work/libmpv-android [verification/lgpl]
 ```
+
+It inspects the **generated** FFmpeg `config.h` (requires `CONFIG_GPL 0`, not
+`NONFREE`) and mpv's meson `intro-buildoptions.json` (requires `gpl=false`). A
+missing artifact is a **failure** — a build that didn't complete cannot pass.
 
 ## CI
 
-`.github/workflows/android-aar.yml` runs this on demand (and on a schedule),
-verifies LGPL, and uploads the AAR as a release artifact. PR CI consumes the
-prebuilt AAR rather than rebuilding it (the build takes tens of minutes).
+`.github/workflows/android-aar.yml` runs this on demand / monthly on
+`ubuntu-latest`, uploads the AAR **and** the G1 evidence (`config.h` snippet,
+mpv gpl option, verifier output). PR CI consumes the prebuilt AAR.
 
 ## ⚠️ Binary build is a toolchain step
 

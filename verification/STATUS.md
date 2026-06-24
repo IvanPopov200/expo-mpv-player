@@ -6,7 +6,7 @@ Update this table **only** when the artifact exists in this directory. Legend:
 | Gate | iOS | Android | Notes |
 |---|---|---|---|
 | G0 static | ✅ | ✅ | CI green on every PR |
-| G1 LGPL provenance | n/a | ⏳ | iOS uses MPVKit LGPL (record versions in NOTICE); Android needs a built AAR's `config.h` |
+| G1 LGPL provenance | n/a | ⏳ | Build script + fail-closed verifier **fixed & self-tested** (`lgpl/patch-selftest.txt`); authoritative build-output `config.h` produced by `android-aar.yml` on CI — not yet captured |
 | G2 compile+link | ✅ | ⏳ | iOS sim build succeeded (PR #7); Android blocked on the AAR |
 | G3 launch | ✅ | ⏳ | iOS app launched without native crash; screenshot in `ios/` |
 | G4 render | ⛔ | ⏳ | iOS: New-Arch view-config blocker; Android: needs G2 |
