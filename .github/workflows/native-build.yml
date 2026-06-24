@@ -1,0 +1,83 @@
+name: Native build (example app)
+
+# Heavy, toolchain-dependent validation kept off the PR fast path:
+#   - build-ios resolves the MPVKit (LGPL) SPM package and builds the example for
+#     a simulator (macOS runner).
+#   - build-android consumes the prebuilt LGPL AAR artifact and assembles the
+#     example (the AAR itself is produced by android-aar.yml).
+# Run on demand once the engine artifacts/toolchains are in place.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 1 * *" # monthly
+
+jobs:
+  build-ios:
+    name: Build example (iOS simulator)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build && npm run build:plugin
+      - name: Install example deps (link local module)
+        working-directory: example
+        run: |
+          npm install
+          npm install ../  # link the module under test
+      - name: Prebuild iOS
+        working-directory: example
+        run: npx expo prebuild --platform ios --no-install
+      - name: Pod install (resolves MPVKit SPM)
+        working-directory: example/ios
+        run: pod install
+      - name: Build for simulator
+        working-directory: example/ios
+        run: |
+          xcodebuild -workspace *.xcworkspace \
+            -scheme expompvplayerexample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            build CODE_SIGNING_ALLOWED=NO | tail -40
+
+  build-android:
+    name: Build example (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run build && npm run build:plugin
+      - name: Fetch prebuilt LGPL AAR
+        uses: actions/download-artifact@v4
+        with:
+          name: libmpv-lgpl-aar
+          path: android/libs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ vars.LIBMPV_AAR_RUN_ID }}
+        continue-on-error: true
+      - name: Install example deps (link local module)
+        working-directory: example
+        run: |
+          npm install
+          npm install ../
+      - name: Prebuild Android
+        working-directory: example
+        run: npx expo prebuild --platform android --no-install
+      - name: Assemble debug
+        working-directory: example/android
+        run: ./gradlew :app:assembleDebug --stacktrace
