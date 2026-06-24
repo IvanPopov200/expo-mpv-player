@@ -1,9 +1,13 @@
-# G5 — hardware decode (the one gate that needs physical devices)
+# G5 — hardware decode (physical-device gate)
 
-Every other gate (G0–G4, G6, G7) is verified on both platforms (see
-`STATUS.md`). **G5 — hardware video decode — cannot be verified in this
-environment**: the iOS Simulator and the Android emulator both fall back to
-software decode, so confirming the hwdec path requires real hardware.
+> **✅ DONE on both platforms (2026-06-24).** iPhone 14 Pro → `videotoolbox`
+> (`ios/g5-hwdec.txt`); Retroid Pocket 6 → `mediacodec-copy` (`android/g5-hwdec.md`),
+> both H.264 + HEVC, 0 dropped frames. The steps below are retained as the
+> repro recipe (sims/emulators fall back to software decode).
+
+**G5 — hardware video decode — cannot be verified on a simulator/emulator**:
+both fall back to software decode, so confirming the hwdec path requires real
+hardware.
 
 What "verified" means here: load a real H.264/HEVC stream, then read
 `getTechnicalInfo()` and confirm `hwdec` reports a hardware decoder (not `no` /

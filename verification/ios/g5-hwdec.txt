@@ -1,0 +1,23 @@
+# G5 iOS hardware decode — physical iPhone 14 Pro (A16 Bionic), iOS 27
+
+Verified over the wire via `idevicesyslog`; the renderer logs the active hwdec at
+playback-restart (native os_log) and the example logs getTechnicalInfo().
+
+## H.264 1080p -> VideoToolbox
+native: G5 hwdec-current=videotoolbox codec=H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10 size=1920x1080
+js: {"videoCodec":"H.264 / AVC ...","videoWidth":1920,"videoHeight":1080,"fps":30,"droppedFrames":0,"voDriver":"gpu-next","isPlaying":true}
+
+## HEVC/H.265 1080p -> VideoToolbox
+native: G5 hwdec-current=videotoolbox codec=H.265 / HEVC (High Efficiency Video Coding) size=1920x1080
+js: {"videoCodec":"H.265 / HEVC ...","droppedFrames":0}
+
+## Result
+hwdec-current = **videotoolbox**, 0 dropped frames, for both H.264 and HEVC.
+**iOS G5 PASSED.**
+
+## Transport note (NOT a defect)
+The clips were served from this Mac over LAN HTTP, purely to play a deterministic
+local file. HTTPS works fine on the device — a probe against a public CDN
+returned mpv `https: HTTP error 403 Forbidden`, i.e. the TLS handshake + HTTPS
+request succeeded and the server merely refused that URL. (An earlier "No route
+to host" was before the fixture was bound to 0.0.0.0 / ATS allowed cleartext.)
