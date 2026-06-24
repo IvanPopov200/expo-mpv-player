@@ -62,14 +62,17 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
 
 ### Status (honest)
 
-- **iOS:** builds, links, renders, headers, onError, teardown — verified on the
-  simulator. G5 (hardware decode) needs a physical device.
-- **Android:** **G1–G4, G6, G7 proven.** LGPL provenance (G1); the example
-  assembles & links the AAR (G2); on a stock r27 AAR (no libc++ swap), `gpu-next`
-  **renders** `sample.mp4` (G4), the exact comma-bearing auth header reaches the
-  server (G6), and a 401 fires **`onError`** (G7). Verified on an arm64
-  Android-36 emulator. **G5 (hardware decode) needs a physical device** — the only
-  open gate on either platform. See `verification/STATUS.md`.
+- **Android:** **G1–G7 proven.** LGPL provenance (G1); the example assembles &
+  links the AAR (G2); on a stock r27 AAR (no libc++ swap), `gpu-next` **renders**
+  `sample.mp4` (G4), the exact comma-bearing auth header reaches the server (G6),
+  and a 401 fires **`onError`** (G7) — on an arm64 Android-36 emulator.
+  **G5 hardware decode** verified on a **physical Retroid Pocket 6** (Snapdragon
+  8 Gen 2): H.264 + HEVC via `c2.qti.{avc,hevc}.decoder`, `hwdec: mediacodec-copy`,
+  0 dropped frames.
+- **iOS:** G2–G4, G6, G7 verified on the Simulator (builds, links, renders,
+  headers, onError, teardown). **iOS G5 (VideoToolbox hardware decode) is the one
+  remaining gate** — it needs a physical iPhone/iPad (`verification/G5-HANDOFF.md`).
+- See `verification/STATUS.md` for the live gate matrix.
 
 ## [0.1.0] — First release
 

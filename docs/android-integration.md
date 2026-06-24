@@ -51,4 +51,7 @@ only in lockstep with RN's bundled NDK. See
   carries no end-file reason, so `MPVRenderer` infers a load failure from event
   ordering and fires `onError` (generic message; iOS surfaces mpv's exact
   reason). Verified against a 401.
-- ⏳ **G5 — hardware decode** (`hwdec=mediacodec-copy`) needs a real device.
+- ✅ **G5 — hardware decode.** Verified on a physical Retroid Pocket 6
+  (Snapdragon 8 Gen 2): H.264 → `c2.qti.avc.decoder` and HEVC →
+  `c2.qti.hevc.decoder`, `hwdec: mediacodec-copy`, 0 dropped frames
+  (`verification/android/g5-hwdec.md`).
