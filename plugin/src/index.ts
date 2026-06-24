@@ -28,6 +28,10 @@ const MPVKIT_MIN_VERSION = "0.41.0";
 const MPVKIT_PRODUCT = "MPVKit";
 const DEFAULT_ABIS = ["arm64-v8a", "x86_64"];
 const VO_DRIVER_META = "expo.modules.mpvplayer.DEFAULT_VO_DRIVER";
+// libmpv's prebuilt .so's require API 26. The Expo root-project gradle plugin
+// reads `android.minSdkVersion` from gradle.properties (default 24), so we raise
+// it here for every consumer app — never lower an already-higher value.
+const MIN_SDK_VERSION = 26;
 
 // ---------------------------------------------------------------------------
 // Pure Android-manifest helpers (exported for unit tests)
@@ -107,6 +111,25 @@ export function setReactNativeArchitectures(
   return gradleProperties;
 }
 
+export function ensureMinSdkVersion(
+  gradleProperties: GradleProp[],
+  minSdk: number,
+): GradleProp[] {
+  const key = "android.minSdkVersion";
+  const existing = gradleProperties.find(
+    (p): p is Extract<GradleProp, { type: "property" }> =>
+      p.type === "property" && p.key === key,
+  );
+  if (existing) {
+    const current = Number.parseInt(existing.value, 10);
+    if (!Number.isNaN(current) && current >= minSdk) return gradleProperties;
+    existing.value = String(minSdk);
+  } else {
+    gradleProperties.push({ type: "property", key, value: String(minSdk) });
+  }
+  return gradleProperties;
+}
+
 // ---------------------------------------------------------------------------
 // Android mod
 // ---------------------------------------------------------------------------
@@ -133,6 +156,7 @@ const withMpvPlayerAndroid: ConfigPlugin<MpvPlayerPluginProps> = (
       cfg.modResults,
       props.androidAbiFilters ?? DEFAULT_ABIS,
     );
+    cfg.modResults = ensureMinSdkVersion(cfg.modResults, MIN_SDK_VERSION);
     return cfg;
   });
 

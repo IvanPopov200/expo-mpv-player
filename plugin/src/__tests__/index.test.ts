@@ -2,6 +2,7 @@ import withMpvPlayer, {
   addMpvKitPodfileHook,
   assertDynamicFrameworks,
   ensureInternetPermission,
+  ensureMinSdkVersion,
   ensurePictureInPictureFeature,
   setDefaultVoDriverMetaData,
   setReactNativeArchitectures,
@@ -111,6 +112,39 @@ describe("setReactNativeArchitectures", () => {
     );
     expect(entries).toHaveLength(1);
     expect((entries[0] as any).value).toBe("arm64-v8a");
+  });
+});
+
+describe("ensureMinSdkVersion", () => {
+  it("adds android.minSdkVersion when absent", () => {
+    const props = ensureMinSdkVersion([], 26);
+    const entry = props.find(
+      (p) => p.type === "property" && p.key === "android.minSdkVersion",
+    );
+    expect((entry as any).value).toBe("26");
+  });
+
+  it("raises a lower existing value", () => {
+    const props = ensureMinSdkVersion(
+      [{ type: "property", key: "android.minSdkVersion", value: "24" }],
+      26,
+    );
+    const entries = props.filter(
+      (p) => p.type === "property" && p.key === "android.minSdkVersion",
+    );
+    expect(entries).toHaveLength(1);
+    expect((entries[0] as any).value).toBe("26");
+  });
+
+  it("does not lower an already-higher value", () => {
+    const props = ensureMinSdkVersion(
+      [{ type: "property", key: "android.minSdkVersion", value: "31" }],
+      26,
+    );
+    const entry = props.find(
+      (p) => p.type === "property" && p.key === "android.minSdkVersion",
+    );
+    expect((entry as any).value).toBe("31");
   });
 });
 
