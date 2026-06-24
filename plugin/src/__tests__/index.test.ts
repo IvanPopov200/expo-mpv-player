@@ -1,12 +1,23 @@
 import withMpvPlayer, {
-  addMpvKitSwiftPackage,
-  assertStaticFrameworks,
+  addMpvKitPodfileHook,
+  assertDynamicFrameworks,
   ensureInternetPermission,
   ensurePictureInPictureFeature,
   setDefaultVoDriverMetaData,
   setReactNativeArchitectures,
   setUsesCleartextTraffic,
 } from "../index";
+
+const PODFILE = `require 'json'
+
+target 'app' do
+  use_react_native!(:path => config[:reactNativePath])
+
+  post_install do |installer|
+    react_native_post_install(installer, config[:reactNativePath])
+  end
+end
+`;
 
 const baseConfig = () => ({ name: "example", slug: "example" });
 
@@ -103,74 +114,57 @@ describe("setReactNativeArchitectures", () => {
   });
 });
 
-describe("assertStaticFrameworks", () => {
-  it("passes when expo-build-properties sets static frameworks", () => {
-    const ok = assertStaticFrameworks({
+describe("assertDynamicFrameworks", () => {
+  it("passes when expo-build-properties sets dynamic frameworks", () => {
+    const ok = assertDynamicFrameworks({
       plugins: [
-        ["expo-build-properties", { ios: { useFrameworks: "static" } }],
+        ["expo-build-properties", { ios: { useFrameworks: "dynamic" } }],
       ],
     });
     expect(ok).toBe(true);
   });
 
-  it("fails (warns) when static frameworks are not configured", () => {
-    expect(assertStaticFrameworks({ plugins: [] })).toBe(false);
-    expect(assertStaticFrameworks({ plugins: ["expo-build-properties"] })).toBe(
-      false,
-    );
+  it("fails (warns) when dynamic frameworks are not configured", () => {
+    expect(assertDynamicFrameworks({ plugins: [] })).toBe(false);
+    expect(
+      assertDynamicFrameworks({
+        plugins: [
+          ["expo-build-properties", { ios: { useFrameworks: "static" } }],
+        ],
+      }),
+    ).toBe(false);
   });
 });
 
-describe("addMpvKitSwiftPackage", () => {
-  const makeProject = () => {
-    const firstProject: any = {};
-    const firstTarget: any = {};
-    let n = 0;
-    return {
-      hash: { project: { objects: {} as Record<string, any> } },
-      generateUuid: () => `UUID_${n++}`,
-      getFirstProject: () => ({ firstProject }),
-      getFirstTarget: () => ({ firstTarget }),
-      _firstProject: firstProject,
-      _firstTarget: firstTarget,
-    };
-  };
-
-  it("adds the LGPL MPVKit remote package and product dependency", () => {
-    const project = makeProject();
-    addMpvKitSwiftPackage(project);
-    const objects = project.hash.project.objects;
-    const refs = Object.values(objects.XCRemoteSwiftPackageReference).filter(
-      (v: any) => typeof v === "object",
+describe("addMpvKitPodfileHook", () => {
+  it("injects the MPVKit hook into the post_install block", () => {
+    const out = addMpvKitPodfileHook(PODFILE);
+    expect(out).toContain("github.com/mpvkit/MPVKit.git");
+    expect(out).toContain("product_name = 'MPVKit'");
+    expect(out).toContain("ExpoMpvPlayer");
+    // Hook lands inside the post_install block.
+    expect(out.indexOf("post_install do |installer|")).toBeLessThan(
+      out.indexOf("mpv_proj = installer.pods_project"),
     );
-    const deps = Object.values(objects.XCSwiftPackageProductDependency).filter(
-      (v: any) => typeof v === "object",
-    );
-    expect(refs).toHaveLength(1);
-    expect((refs[0] as any).repositoryURL).toContain("MPVKit");
-    expect((deps[0] as any).productName).toBe("MPVKit");
-    expect(project._firstProject.packageReferences).toHaveLength(1);
-    expect(project._firstTarget.packageProductDependencies).toHaveLength(1);
   });
 
-  it("uses only the LGPL product (no GPL product variant)", () => {
-    const project = makeProject();
-    addMpvKitSwiftPackage(project);
-    const deps = Object.values(
-      project.hash.project.objects.XCSwiftPackageProductDependency,
-    );
-    const names = deps
-      .filter((v: any) => typeof v === "object")
-      .map((v: any) => v.productName);
-    // The LGPL product is named exactly "MPVKit"; the GPL variant has a suffix.
-    expect(names).toEqual(["MPVKit"]);
-    expect(names.every((n: string) => !n.includes("-"))).toBe(true);
+  it("targets only the LGPL product/repo (no GPL variant)", () => {
+    const out = addMpvKitPodfileHook(PODFILE);
+    expect(out).toContain("product_name = 'MPVKit'");
+    // The GPL product/repo carries a "MPVKit-" suffix; assert none appears.
+    expect(out).not.toMatch(/MPVKit-/);
   });
 
-  it("is idempotent", () => {
-    const project = makeProject();
-    addMpvKitSwiftPackage(project);
-    addMpvKitSwiftPackage(project);
-    expect(project._firstProject.packageReferences).toHaveLength(1);
+  it("is idempotent — does not insert twice", () => {
+    const once = addMpvKitPodfileHook(PODFILE);
+    const twice = addMpvKitPodfileHook(once);
+    const occurrences =
+      twice.split("mpv_proj = installer.pods_project").length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("leaves a Podfile without the anchor unchanged", () => {
+    const noAnchor = "target 'app' do\nend\n";
+    expect(addMpvKitPodfileHook(noAnchor)).toBe(noAnchor);
   });
 });
