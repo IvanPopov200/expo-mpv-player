@@ -1,0 +1,9 @@
+==> LGPL verification (build-output authoritative, fail-closed)
+    tree: android/libmpv-build/.work/libmpv-android
+--- FFmpeg config: android/libmpv-build/.work/libmpv-android/buildscripts/deps/ffmpeg/_build-arm64/config.h
+OK: CONFIG_GPL 0
+OK: not nonfree
+OK: CONFIG_VERSION3 1 (LGPL v3)
+--- mpv gpl option (android/libmpv-build/.work/libmpv-android/buildscripts/deps/mpv/_build-arm64/meson-info/intro-buildoptions.json): False
+OK: mpv gpl=false
+==> LGPL verification PASSED

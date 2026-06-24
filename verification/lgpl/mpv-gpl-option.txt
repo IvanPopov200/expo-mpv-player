@@ -1,0 +1,1 @@
+mpv gpl=False (android/libmpv-build/.work/libmpv-android/buildscripts/deps/mpv/_build-arm64/meson-info/intro-buildoptions.json)
