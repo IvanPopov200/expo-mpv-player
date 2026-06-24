@@ -41,7 +41,7 @@ module.
 
 | Platform | Supported | Notes |
 |---|---|---|
-| iOS | ✅ | iOS 14+. Renders via Metal/MoltenVK. Requires static frameworks. |
+| iOS | ✅ | iOS 14+. Renders via Metal/MoltenVK. Requires dynamic frameworks. |
 | tvOS | ⚠️ experimental | iOS 14+ codebase; HDR passthrough is rough. |
 | Android | ✅ | **minSdk 26** (Android 8.0). Below 26, fall back to another player. |
 | Web | ❌ | Exports inert stubs so your app still bundles; renders an unsupported notice. |
@@ -66,15 +66,16 @@ Add the config plugin to your `app.json` / `app.config.js`:
       "expo-mpv-player",
       [
         "expo-build-properties",
-        { "ios": { "useFrameworks": "static" } }
+        { "ios": { "useFrameworks": "dynamic" } }
       ]
     ]
   }
 }
 ```
 
-The `useFrameworks: "static"` setting is **required on iOS** (the mpv engine ships as
-static frameworks). Then regenerate native projects and build a dev client:
+The `useFrameworks: "dynamic"` setting is **required on iOS**: MPVKit ships binary
+xcframeworks that, under static linkage, get double-embedded (pod + app) and fail to
+link with duplicate symbols. Then regenerate native projects and build a dev client:
 
 ```sh
 npx expo prebuild --clean
@@ -103,7 +104,7 @@ This package ships **LGPL** builds of mpv/FFmpeg on both platforms (the clean
 license boundary is the whole point — see [Licensing](#licensing)).
 
 - **iOS** links the LGPL `MPVKit` Swift Package. The config plugin adds it to your
-  prebuilt Xcode project; static frameworks are required. Details and the
+  prebuilt Xcode project; dynamic frameworks are required. Details and the
   fallback (vendored xcframeworks) are in
   [`docs/ios-integration.md`](./docs/ios-integration.md).
 - **Android** links a custom **LGPL** `libmpv` AAR you build from the public

@@ -399,9 +399,14 @@ final class MPVRenderer {
 
   private func command(_ args: [String]) {
     guard let mpv else { return }
-    var cargs = args.map { strdup($0) }
+    // mpv_command wants a NULL-terminated `const char *[]`.
+    var cargs: [UnsafePointer<CChar>?] = args.map { UnsafePointer(strdup($0)) }
     cargs.append(nil)
-    defer { cargs.forEach { free($0) } }
+    defer {
+      for ptr in cargs where ptr != nil {
+        free(UnsafeMutablePointer(mutating: ptr))
+      }
+    }
     cargs.withUnsafeMutableBufferPointer { buf in
       _ = mpv_command(mpv, buf.baseAddress)
     }
