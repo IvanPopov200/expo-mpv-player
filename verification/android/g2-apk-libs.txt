@@ -1,0 +1,25 @@
+# arm64-v8a native libraries packaged in app-debug.apk
+# (libmpv + FFmpeg stack from the LGPL AAR)
+    130328  lib/arm64-v8a/libappmodules.so
+  11967352  lib/arm64-v8a/libavcodec.so
+      9128  lib/arm64-v8a/libavdevice.so
+    141536  lib/arm64-v8a/libavfilter.so
+   2974544  lib/arm64-v8a/libavformat.so
+    726872  lib/arm64-v8a/libavutil.so
+   1292904  lib/arm64-v8a/libc++_shared.so
+   1660480  lib/arm64-v8a/libexpo-modules-core.so
+    177000  lib/arm64-v8a/libfbjni.so
+    318992  lib/arm64-v8a/libgifimage.so
+    555512  lib/arm64-v8a/libhermestooling.so
+   3699496  lib/arm64-v8a/libhermesvm.so
+      8760  lib/arm64-v8a/libimagepipeline.so
+    923712  lib/arm64-v8a/libjsi.so
+   6452840  lib/arm64-v8a/libmpv.so
+     23712  lib/arm64-v8a/libnative-filters.so
+    585376  lib/arm64-v8a/libnative-imagetranscoder.so
+     19456  lib/arm64-v8a/libplayer.so
+  22580528  lib/arm64-v8a/libreactnative.so
+    501856  lib/arm64-v8a/libstatic-webp.so
+     96656  lib/arm64-v8a/libswresample.so
+   1152648  lib/arm64-v8a/libswscale.so
+    731872  lib/arm64-v8a/libzstd-kmp.so
