@@ -15,7 +15,7 @@
     "expo-build-properties": "~56.0.19",
     "expo-mpv-player": "file:..",
     "expo-status-bar": "~3.0.0",
-    "react": "19.2.7",
+    "react": "19.2.3",
     "react-native": "0.85.3"
   },
   "devDependencies": {

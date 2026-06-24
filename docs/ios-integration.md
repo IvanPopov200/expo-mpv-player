@@ -83,12 +83,17 @@ Verified on this machine (Xcode 26.5, iOS Simulator):
   the config plugin (`BUILD SUCCEEDED`), producing `expompvplayerexample.app`.
 - ✅ The app **launches** on the simulator without a native crash (the native
   module loads).
-- ⚠️ Rendering `<MpvPlayerView>` at runtime currently hits an Expo Modules
-  **Fabric view-config / New-Architecture view-interop** error
-  (`getViewConfig` → legacy Paper path, which is stripped under New Arch) on this
-  SDK 56 / RN 0.85 / precompiled-modules / dynamic-frameworks stack. This is a
-  framework-boundary issue, not in the module's native code. Under
-  investigation; a more stable Expo SDK pin is a candidate fix.
+- ✅ **`<MpvPlayerView>` renders decoded video frames** on the simulator (G4) —
+  see `verification/ios/g4-render.png`. The same run shows `onProgress`,
+  `onPlaybackStateChange`, and audio-track enumeration working.
+
+> **The earlier "Fabric view-config" diagnosis was wrong.** `getViewConfig`
+> returns a valid config; the New-Arch view path is fine. The real blocker was a
+> **React version mismatch**: react-native 0.85.3 bundles `react-native-renderer`
+> built against **exactly react 19.2.3** and rejects any other (even within the
+> `^19.2.3` peer range). The app had react 19.2.7 → "Incompatible React versions"
+> → "Cannot read property 'default' of undefined". **Fix: pin react `19.2.3`.**
+> Consumers must likewise match react to whatever their react-native bundles.
 
 The hardware-decode smoke test (10-bit HEVC MKV, `hwdec=videotoolbox`) still
-requires a **physical device** — simulators cannot use VideoToolbox hwdec.
+requires a **physical device** — simulators cannot use VideoToolbox hwdec (G5).
