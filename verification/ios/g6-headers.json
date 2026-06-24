@@ -1,0 +1,9 @@
+[
+  {
+    "method": "GET",
+    "url": "/ok",
+    "authorization": "MediaBrowser Client=\"ExpoMpvPlayer\", Token=\"fixture-token-123\"",
+    "status": 206,
+    "at": "2026-06-24T09:22:15.324Z"
+  }
+]

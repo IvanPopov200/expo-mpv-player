@@ -130,15 +130,19 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
   // MARK: - Load & transport
 
   fun load(config: MpvLoadConfig) {
-    if (config.headers.isNotEmpty()) {
-      val joined = config.headers.entries.joinToString(",") { "${it.key}: ${it.value}" }
-      mpv.setOption("http-header-fields", joined)
+    // HTTP auth headers: set BEFORE loadfile via `change-list … append` so each
+    // header is a single list item. A value containing a comma (e.g. a Jellyfin
+    // `MediaBrowser Client="x", Token="y"`) is NOT split into bogus headers the
+    // way the previous comma-join did. Clear first so a reload doesn't accumulate.
+    mpv.command(arrayOf("change-list", "http-header-fields", "clr", ""))
+    config.headers.forEach { (k, v) ->
+      mpv.command(arrayOf("change-list", "http-header-fields", "append", "$k: $v"))
     }
-    config.cacheEnabled?.let { mpv.setOption("cache", it) }
-    config.cacheSeconds?.let { mpv.setOption("cache-secs", it.toString()) }
-    config.maxBytes?.let { mpv.setOption("demuxer-max-bytes", it.toString()) }
-    config.maxBackBytes?.let { mpv.setOption("demuxer-max-back-bytes", it.toString()) }
-    config.startPosition?.takeIf { it > 0 }?.let { mpv.setOption("start", it.toString()) }
+    config.cacheEnabled?.let { mpv.setString("cache", it) }
+    config.cacheSeconds?.let { mpv.setString("cache-secs", it.toString()) }
+    config.maxBytes?.let { mpv.setString("demuxer-max-bytes", it.toString()) }
+    config.maxBackBytes?.let { mpv.setString("demuxer-max-back-bytes", it.toString()) }
+    config.startPosition?.takeIf { it > 0 }?.let { mpv.setString("start", it.toString()) }
 
     mpv.setBoolean("pause", !config.autoplay)
     pendingConfig = config
@@ -263,6 +267,13 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
         seeking = false
         main.post { delegate?.onPlaybackState(null, null, false, true) }
       }
+      // NOTE (P1-E, Android): the libmpv-android 1.0.0 EventObserver delivers
+      // only the event id, not the END_FILE reason/error, so a load failure
+      // (401, bad URL, decode error) can't be distinguished from a clean EOF
+      // here to fire onError. Surfacing it requires either a LogObserver hook or
+      // a JNI wrapper patch exposing mpv_event_end_file.reason — tracked for the
+      // Android engine work (it can only be verified once the AAR + an emulator
+      // exist). iOS fires onError correctly via mpv_event_end_file.
       MpvEvent.END_FILE -> main.post { delegate?.onPlaybackState(null, false, false, false) }
       MpvEvent.SHUTDOWN -> {}
     }

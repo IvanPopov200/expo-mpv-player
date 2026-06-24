@@ -106,11 +106,26 @@ final class MPVRenderer {
       }, Unmanaged.passUnretained(self).toOpaque())
   }
 
+  private var destroyed = false
+
   deinit {
-    if let mpv {
-      mpv_set_wakeup_callback(mpv, nil, nil)
-      mpv_terminate_destroy(mpv)
-    }
+    invalidate()
+  }
+
+  /// Tears down mpv safely. Serialized on the event queue so it can't race with
+  /// drainEvents(), and idempotent so an explicit teardown and MPV_EVENT_SHUTDOWN
+  /// can't double-destroy. Call this from the view's teardown rather than relying
+  /// on `deinit` timing.
+  func invalidate() {
+    eventQueue.sync { destroyMpv() }
+  }
+
+  private func destroyMpv() {
+    guard !destroyed, let mpv else { return }
+    destroyed = true
+    mpv_set_wakeup_callback(mpv, nil, nil)
+    mpv_terminate_destroy(mpv)
+    self.mpv = nil
   }
 
   // MARK: - Load & transport
@@ -118,20 +133,27 @@ final class MPVRenderer {
   func load(_ config: MPVLoadConfig) {
     guard let mpv else { return }
 
-    // HTTP auth headers go in before loadfile.
-    if !config.headers.isEmpty {
-      let joined = config.headers.map { "\($0.key): \($0.value)" }.joined(separator: ",")
-      setOption("http-header-fields", joined)
+    // HTTP auth headers: set BEFORE loadfile via `change-list … append` so each
+    // header is a single list item. A value containing a comma (e.g. a Jellyfin
+    // `MediaBrowser Client="x", Token="y"`) is NOT split into bogus headers the
+    // way a naive comma-join would. Clear first so a reload doesn't accumulate.
+    command(["change-list", "http-header-fields", "clr", ""])
+    for (key, value) in config.headers {
+      command(["change-list", "http-header-fields", "append", "\(key): \(value)"])
     }
 
-    if let enabled = config.cacheEnabled { setOption("cache", enabled) }
-    if let secs = config.cacheSeconds { setOption("cache-secs", String(secs)) }
-    if let bytes = config.maxBytes { setOption("demuxer-max-bytes", String(bytes)) }
-    if let back = config.maxBackBytes { setOption("demuxer-max-back-bytes", String(back)) }
+    // After mpv_initialize, options must be set via the property API (not
+    // mpv_set_option_string, which is for pre-init configuration).
+    if let enabled = config.cacheEnabled { setPropertyString("cache", value: enabled) }
+    if let secs = config.cacheSeconds { setPropertyString("cache-secs", value: String(secs)) }
+    if let bytes = config.maxBytes { setPropertyString("demuxer-max-bytes", value: String(bytes)) }
+    if let back = config.maxBackBytes {
+      setPropertyString("demuxer-max-back-bytes", value: String(back))
+    }
 
-    // Resume position via the start option (applied on load).
+    // Resume position (applied on the next load).
     if let start = config.startPosition, start > 0 {
-      setOption("start", String(start))
+      setPropertyString("start", value: String(start))
     }
 
     // Honour autoplay: start paused if not autoplaying.
@@ -280,6 +302,13 @@ final class MPVRenderer {
         isPaused: nil, isPlaying: nil, isLoading: false, isReadyToSeek: true)
 
     case MPV_EVENT_END_FILE:
+      // Surface load/decode failures (401, bad URL, unsupported, …) as onError.
+      // A clean EOF/stop has a non-ERROR reason and must not fire onError.
+      if let endFile = event.data?.assumingMemoryBound(to: mpv_event_end_file.self).pointee,
+        endFile.reason == MPV_END_FILE_REASON_ERROR
+      {
+        delegate?.rendererDidError(String(cString: mpv_error_string(endFile.error)))
+      }
       delegate?.rendererDidChangePlaybackState(
         isPaused: nil, isPlaying: false, isLoading: false, isReadyToSeek: false)
 
@@ -287,8 +316,7 @@ final class MPVRenderer {
       handlePropertyChange(event)
 
     case MPV_EVENT_SHUTDOWN:
-      if let mpv { mpv_terminate_destroy(mpv) }
-      self.mpv = nil
+      destroyMpv()
 
     case MPV_EVENT_LOG_MESSAGE:
       if let data = event.data?.assumingMemoryBound(to: mpv_event_log_message.self).pointee,

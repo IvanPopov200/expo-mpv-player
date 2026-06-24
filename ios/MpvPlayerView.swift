@@ -38,6 +38,7 @@ public final class MpvPlayerView: ExpoView, MPVRendererDelegate {
 
   deinit {
     NotificationCenter.default.removeObserver(self)
+    renderer?.invalidate()
     deactivateAudioSession()
   }
 
