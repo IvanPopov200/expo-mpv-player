@@ -13,7 +13,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
-// Avoid resolving two copies of React/React Native from the parent.
+// Resolve a single copy of React/React Native (the example's), even though the
+// module under test is symlinked from the repo root.
 config.resolver.disableHierarchicalLookup = true;
 
 module.exports = config;
