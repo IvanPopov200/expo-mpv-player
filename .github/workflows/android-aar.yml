@@ -36,9 +36,12 @@ jobs:
       - name: Install native build deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build nasm yasm pkg-config autoconf automake libtool gperf
-          # apt meson is too old (fontconfig/libplacebo need >= 1.6.1); use pipx.
-          pipx install meson || python3 -m pip install --user --break-system-packages meson
+          sudo apt-get install -y ninja-build nasm yasm pkg-config autoconf automake libtool gperf python3-pip
+          # apt meson is too old (fontconfig/libplacebo need >= 1.6.1). Install
+          # meson + the python modules the build's meson invokes (mpv: jinja2,
+          # jsonschema; libplacebo: mako) into the system interpreter so they're
+          # all consistent. cmake is provided by the SDK (download.sh).
+          python3 -m pip install --break-system-packages --upgrade meson jsonschema jinja2 mako
           meson --version && ninja --version && nasm --version | head -1
 
       - name: Build LGPL AAR (upstream download.sh installs SDK/NDK + deps)
