@@ -39,6 +39,7 @@ struct MPVLoadConfig {
   var cacheSeconds: Int?
   var maxBytes: Int?
   var maxBackBytes: Int?
+  var allowSelfSignedTls: Bool = false
 }
 
 protocol MPVRendererDelegate: AnyObject {
@@ -81,7 +82,7 @@ final class MPVRenderer {
     setOption("gpu-context", "moltenvk")
     setOption("hwdec", isSimulator ? "no" : "videotoolbox")
     setOption("hwdec-codecs", "all")
-    setOption("tls-verify", "no") // LAN / self-signed media servers
+    // tls-verify is set per-source in load() — secure (validating) by default.
     setOption("ytdl", "no")
     setOption("keep-open", "always")
     setOption("cache", "yes")
@@ -155,6 +156,9 @@ final class MPVRenderer {
     if let start = config.startPosition, start > 0 {
       setPropertyString("start", value: String(start))
     }
+
+    // TLS: validate certs by default; only disable for an opted-in source.
+    setPropertyString("tls-verify", value: config.allowSelfSignedTls ? "no" : "yes")
 
     // Honour autoplay: start paused if not autoplaying.
     setPropertyFlag("pause", value: !config.autoplay)
@@ -271,7 +275,6 @@ final class MPVRenderer {
     mpv_observe_property(mpv, 0, "pause", MPV_FORMAT_FLAG)
     mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
     mpv_observe_property(mpv, 0, "demuxer-cache-duration", MPV_FORMAT_DOUBLE)
-    mpv_observe_property(mpv, 0, "track-list/count", MPV_FORMAT_INT64)
     mpv_observe_property(mpv, 0, "eof-reached", MPV_FORMAT_FLAG)
   }
 

@@ -192,6 +192,9 @@ interface VideoSource {
     maxBackBytes?: number;
   };
   voDriver?: 'gpu-next' | 'gpu'; // Android only
+  /** Allow self-signed/unverified TLS for this source. Default false (certs are
+   *  validated). Enable only for a trusted LAN server with a self-signed cert. */
+  allowSelfSignedTls?: boolean;
 }
 ```
 

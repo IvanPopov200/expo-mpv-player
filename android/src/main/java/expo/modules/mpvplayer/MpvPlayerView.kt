@@ -90,6 +90,7 @@ class MpvPlayerView(context: Context, appContext: AppContext) :
       maxBytes = toInt(cache?.get("maxBytes")),
       maxBackBytes = toInt(cache?.get("maxBackBytes")),
       voDriver = source["voDriver"] as? String ?: defaultVoDriver,
+      allowSelfSignedTls = source["allowSelfSignedTls"] as? Boolean ?: false,
     )
   }
 
