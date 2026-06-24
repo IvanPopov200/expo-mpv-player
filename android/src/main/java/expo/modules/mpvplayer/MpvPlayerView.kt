@@ -1,6 +1,7 @@
 package expo.modules.mpvplayer
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -28,6 +29,19 @@ class MpvPlayerView(context: Context, appContext: AppContext) :
 
   private var initialized = false
   private var pendingSurface: SurfaceHolder? = null
+
+  // App-level default VO driver, set by the config plugin as manifest meta-data.
+  private val defaultVoDriver: String by lazy {
+    runCatching {
+      @Suppress("DEPRECATION")
+      val info =
+        context.packageManager.getApplicationInfo(
+          context.packageName,
+          PackageManager.GET_META_DATA,
+        )
+      info.metaData?.getString("expo.modules.mpvplayer.DEFAULT_VO_DRIVER")
+    }.getOrNull() ?: "gpu-next"
+  }
 
   init {
     setBackgroundColor(Color.BLACK)
@@ -75,7 +89,7 @@ class MpvPlayerView(context: Context, appContext: AppContext) :
       cacheSeconds = toInt(cache?.get("cacheSeconds")),
       maxBytes = toInt(cache?.get("maxBytes")),
       maxBackBytes = toInt(cache?.get("maxBackBytes")),
-      voDriver = source["voDriver"] as? String ?: "gpu-next",
+      voDriver = source["voDriver"] as? String ?: defaultVoDriver,
     )
   }
 

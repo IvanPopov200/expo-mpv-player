@@ -1,6 +1,6 @@
 {
   "name": "expo-mpv-player",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "description": "A play-anything video player for Expo and React Native, powered by libmpv. Direct-plays MKV, 10-bit HEVC, VC-1, DTS-HD, TrueHD, E-AC3, PGS/ASS subtitles — no server-side transcode.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
