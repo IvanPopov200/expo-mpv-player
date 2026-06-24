@@ -20,21 +20,20 @@ android {
     }
   }
 
-  // The LGPL libmpv AAR (built in M2 from android/libmpv-build/) is dropped into
-  // android/libs/ and its packaged .so files are picked up from there.
-  sourceSets {
-    main {
-      jniLibs.srcDirs = ['libs']
-    }
-  }
-
   lintOptions {
     abortOnError false
   }
 }
 
 dependencies {
-  // M2: link the custom LGPL libmpv AAR you build from android/libmpv-build/.
-  // Never link the GPL prebuilt libmpv Maven artifact — see NOTICE / CONTRIBUTING.
-  // implementation files('libs/expo-mpv-player-libmpv-lgpl-1.0.0.aar')
+  // Link the custom LGPL libmpv AAR built by android/libmpv-build/ and dropped
+  // into android/libs/ (it carries its own .so's). Never the GPL prebuilt Maven
+  // artifact — see NOTICE / CONTRIBUTING. The AAR is a native binary, not
+  // committed to git; build it (see docs/android-integration.md).
+  def libmpvAar = fileTree(dir: 'libs', include: ['*.aar'])
+  if (libmpvAar.isEmpty()) {
+    logger.warn('expo-mpv-player: no libmpv AAR in android/libs/. Android will ' +
+      'not compile until you build one (android/libmpv-build/build-lgpl-aar.sh).')
+  }
+  implementation libmpvAar
 }
