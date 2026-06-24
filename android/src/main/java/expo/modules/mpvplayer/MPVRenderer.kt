@@ -76,6 +76,15 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
   private var lastProgressEmit = 0L
   private var seeking = false
 
+  // onError without the END_FILE reason (the JNI wrapper omits it): infer a load
+  // failure from event ordering. A file that START_FILEs but END_FILEs before
+  // FILE_LOADED never opened → error. `pendingReplace` swallows the END_FILE that
+  // mpv emits for the *previous* file when a new load() supersedes it, so a normal
+  // reload isn't misreported as a failure. @Volatile: written on the libmpv thread
+  // (onEvent) and the main thread (load()).
+  @Volatile private var loadSucceeded = false
+  @Volatile private var pendingReplace = false
+
   private companion object {
     const val PROGRESS_INTERVAL_MS = 1000L
     const val SUBFONT_ASSET = "subfont.ttf"
@@ -148,6 +157,9 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
 
     mpv.setBoolean("pause", !config.autoplay)
     pendingConfig = config
+    // The `replace` below makes mpv END_FILE the current file (if any); guard that
+    // transitional event from being read as a load failure.
+    pendingReplace = true
     delegate?.let { d -> main.post { d.onPlaybackState(null, null, true, false) } }
     mpv.command(arrayOf("loadfile", config.url, "replace"))
   }
@@ -256,7 +268,14 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
 
   override fun onEvent(eventId: Int) {
     when (eventId) {
+      MpvEvent.START_FILE -> {
+        // A new file began opening (after any superseded file's END_FILE). Reset
+        // the success flag and clear the replace guard for this attempt.
+        loadSucceeded = false
+        pendingReplace = false
+      }
       MpvEvent.FILE_LOADED -> {
+        loadSucceeded = true
         applyPendingSelections()
         val url = pendingConfig?.url
         main.post {
@@ -269,14 +288,22 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
         seeking = false
         main.post { delegate?.onPlaybackState(null, null, false, true) }
       }
-      // NOTE (P1-E, Android): the libmpv-android 1.0.0 EventObserver delivers
-      // only the event id, not the END_FILE reason/error, so a load failure
-      // (401, bad URL, decode error) can't be distinguished from a clean EOF
-      // here to fire onError. Surfacing it requires either a LogObserver hook or
-      // a JNI wrapper patch exposing mpv_event_end_file.reason — tracked for the
-      // Android engine work (it can only be verified once the AAR + an emulator
-      // exist). iOS fires onError correctly via mpv_event_end_file.
-      MpvEvent.END_FILE -> main.post { delegate?.onPlaybackState(null, false, false, false) }
+      // The libmpv-android 1.0.0 EventObserver delivers only the event id, not the
+      // END_FILE reason. We infer a load failure from ordering (see loadSucceeded /
+      // pendingReplace): a file that started but END_FILEs before FILE_LOADED never
+      // opened (401, bad URL, decode error) → onError. A normal EOF after a
+      // successful load, or the transitional END_FILE of a file replaced by a new
+      // load(), is not an error. The message is generic since the wrapper hides the
+      // reason; iOS surfaces mpv's exact error string via mpv_event_end_file.
+      MpvEvent.END_FILE -> {
+        val isLoadFailure = !pendingReplace && !loadSucceeded
+        main.post {
+          delegate?.onPlaybackState(null, false, false, false)
+          if (isLoadFailure) {
+            delegate?.onError("Failed to load media — the source could not be opened or decoded")
+          }
+        }
+      }
       MpvEvent.SHUTDOWN -> {}
     }
   }

@@ -43,11 +43,12 @@ only in lockstep with RN's bundled NDK. See
 
 - ✅ **G2 — assemble + link.** `gradlew :app:assembleDebug` builds the example
   with the LGPL AAR linked (`verification/android/g2-compile.md`).
-- 🅟 **G3/G4/G6 — runtime** verified on an arm64 emulator (gpu-next renders the
-  sample clip, exact comma-bearing auth header reaches the server). These ran on
-  a debug APK repackaged with the AAR's compatible libc++; re-verify on a stock
-  AAR rebuilt with the r27 pin above. See `verification/android/`.
-- ⛔ **G7 — onError:** the prebuilt JNI wrapper's `EventObserver.event(int)`
-  carries no end-file reason, so the module cannot fire `onError` on a load
-  failure (iOS can). Documented limitation.
+- ✅ **G3/G4/G6 — runtime** verified on an arm64 emulator against the **stock r27
+  AAR** (no libc++ swap): `libmpv.so` `dlopen`s clean, `gpu-next` renders the
+  sample clip, the exact comma-bearing auth header reaches the server.
+  See `verification/android/g3-g4-g6-g7-runtime.md`.
+- ✅ **G7 — onError.** The prebuilt JNI wrapper's `EventObserver.event(int)`
+  carries no end-file reason, so `MPVRenderer` infers a load failure from event
+  ordering and fires `onError` (generic message; iOS surfaces mpv's exact
+  reason). Verified against a 401.
 - ⏳ **G5 — hardware decode** (`hwdec=mediacodec-copy`) needs a real device.

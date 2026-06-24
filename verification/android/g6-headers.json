@@ -4,13 +4,6 @@
     "url": "/ok",
     "authorization": "MediaBrowser Client=\"ExpoMpvPlayer\", Token=\"fixture-token-123\"",
     "status": 206,
-    "at": "2026-06-24T10:41:29.747Z"
-  },
-  {
-    "method": "GET",
-    "url": "/unauth",
-    "authorization": "MediaBrowser Client=\"ExpoMpvPlayer\", Token=\"fixture-token-123\"",
-    "status": 401,
-    "at": "2026-06-24T10:41:35.771Z"
+    "at": "2026-06-24T11:05:49.618Z"
   }
 ]
