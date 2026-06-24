@@ -214,6 +214,16 @@ class MPVRenderer(context: Context, delegate: MpvRendererDelegate) : MpvLib.List
 
   fun isZoomedToFill(): Boolean = (mpv.getDouble("panscan") ?: 0.0) > 0.5
 
+  // MARK: - Subtitle styling & A/V sync
+
+  fun setSubtitleScale(scale: Double) = mpv.setDouble("sub-scale", scale)
+
+  fun setSubtitlePosition(position: Double) = mpv.setDouble("sub-pos", position)
+
+  fun setSubtitleDelay(seconds: Double) = mpv.setDouble("sub-delay", seconds)
+
+  fun setAudioDelay(seconds: Double) = mpv.setDouble("audio-delay", seconds)
+
   // MARK: - Diagnostics
 
   fun technicalInfo(): MpvTechnicalInfo =

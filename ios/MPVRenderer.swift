@@ -215,6 +215,13 @@ final class MPVRenderer {
 
   func isZoomedToFill() -> Bool { (getDouble("panscan") ?? 0) > 0.5 }
 
+  // MARK: - Subtitle styling & A/V sync
+
+  func setSubtitleScale(_ scale: Double) { setPropertyDouble("sub-scale", scale) }
+  func setSubtitlePosition(_ position: Double) { setPropertyDouble("sub-pos", position) }
+  func setSubtitleDelay(_ seconds: Double) { setPropertyDouble("sub-delay", seconds) }
+  func setAudioDelay(_ seconds: Double) { setPropertyDouble("audio-delay", seconds) }
+
   // MARK: - Diagnostics
 
   func technicalInfo() -> MPVTechnicalInfo {
@@ -356,6 +363,12 @@ final class MPVRenderer {
     guard let mpv else { return }
     var flag: Int32 = value ? 1 : 0
     mpv_set_property(mpv, name, MPV_FORMAT_FLAG, &flag)
+  }
+
+  private func setPropertyDouble(_ name: String, _ value: Double) {
+    guard let mpv else { return }
+    var v = value
+    mpv_set_property(mpv, name, MPV_FORMAT_DOUBLE, &v)
   }
 
   private func getDouble(_ name: String) -> Double? {

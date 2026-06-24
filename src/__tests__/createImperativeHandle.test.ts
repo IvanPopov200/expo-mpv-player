@@ -23,6 +23,10 @@ const makeNative = (): jest.Mocked<NativeMpvViewRef> => ({
   addSubtitleFile: jest.fn(() => Promise.resolve()),
   setZoomedToFill: jest.fn(() => Promise.resolve()),
   isZoomedToFill: jest.fn(() => Promise.resolve(false)),
+  setSubtitleScale: jest.fn(() => Promise.resolve()),
+  setSubtitlePosition: jest.fn(() => Promise.resolve()),
+  setSubtitleDelay: jest.fn(() => Promise.resolve()),
+  setAudioDelay: jest.fn(() => Promise.resolve()),
   getTechnicalInfo: jest.fn(() => Promise.resolve({ hwdec: "videotoolbox" })),
   startPictureInPicture: jest.fn(() => Promise.resolve()),
   stopPictureInPicture: jest.fn(() => Promise.resolve()),
@@ -59,6 +63,19 @@ describe("createImperativeHandle", () => {
         "https://example.com/s.srt",
         true,
       );
+    });
+
+    it("forwards subtitle styling and a/v sync setters", async () => {
+      const native = makeNative();
+      const handle = createImperativeHandle(() => native);
+      await handle.setSubtitleScale(1.4);
+      await handle.setSubtitlePosition(90);
+      await handle.setSubtitleDelay(-0.5);
+      await handle.setAudioDelay(0.25);
+      expect(native.setSubtitleScale).toHaveBeenCalledWith(1.4);
+      expect(native.setSubtitlePosition).toHaveBeenCalledWith(90);
+      expect(native.setSubtitleDelay).toHaveBeenCalledWith(-0.5);
+      expect(native.setAudioDelay).toHaveBeenCalledWith(0.25);
     });
 
     it("returns values from query/diagnostic getters", async () => {
