@@ -1,0 +1,15 @@
+# G5 hardware-decode evidence — Retroid Pocket 6 (Snapdragon 8 Gen 2 / kalama),
+# Android 13, arm64-v8a. mpv hwdec=mediacodec-copy on a physical device.
+
+## H.264 (1920x1080) -> Qualcomm c2.qti.avc.decoder
+[vd:v] Trying hardware decoding via h264_mediacodec-mediacodec-copy.
+[vd:v] Using underlying hw-decoder 'h264_mediacodec'
+[ffmpeg/video:v] h264_mediacodec: MediaCodec started successfully: codec = c2.qti.avc.decoder, ret = 0
+[vd:info] Using hardware decoding (mediacodec-copy).
+# getTechnicalInfo(): {"videoCodec":"H.264 / AVC ...","hwdec":"mediacodec-copy","droppedFrames":0,"fps":30,"videoWidth":1920,"videoHeight":1080}
+
+## HEVC / H.265 (1920x1080) -> Qualcomm c2.qti.hevc.decoder
+[ffmpeg/video:v] hevc_mediacodec: Output MediaFormat changed to {... mime=video/raw, width=1920, height=1080 ...}
+[vd:info] Using hardware decoding (mediacodec-copy).
+QC2Comp: [hevcD_21] Stats: ... Stream: 30.00fps 5.0Mbps   # c2.qti.hevc.decoder running on the Adreno/Qualcomm Codec2
+# getTechnicalInfo(): {"videoCodec":"H.265 / HEVC ...","hwdec":"mediacodec-copy","droppedFrames":0,"fps":30,"videoWidth":1920,"videoHeight":1080}
