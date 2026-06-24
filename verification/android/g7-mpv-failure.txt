@@ -1,0 +1,7 @@
+06-24 13:41:35.882  5312  5408 V mpv     : event: end-file
+06-24 13:41:35.882  5312  5408 V mpv     : [stream_callback:v] Opening http://localhost:8099/unauth
+06-24 13:41:35.883  5312  5408 V mpv     : [ffmpeg:v] Opening http://localhost:8099/unauth
+06-24 13:41:35.889  5312  5408 V mpv     : [stream:error] Failed to open http://localhost:8099/unauth.
+06-24 13:41:35.889  5312  5408 V mpv     : event: end-file
+06-24 13:41:35.890  5312  5408 V mpv     : [cplayer:v] Opening failed or was aborted: http://localhost:8099/unauth
+06-24 13:41:35.890  5312  5408 V mpv     : [cplayer:v] finished playback, loading failed (reason 4)

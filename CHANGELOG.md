@@ -31,6 +31,18 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
   **G7 verified** on iOS. (Android: wrapper lacks the END_FILE reason — documented.)
 - **iOS teardown races (P1-F):** serialized, idempotent `invalidate()`.
   **G3 stress verified** (20 mount/unmount cycles, no crash).
+- **Android compile + `compileSdk`/`minSdk` (G2):** the module declared no
+  `compileSdk` (newer AGP hard-fails); now uses Expo's
+  `useDefaultAndroidSdkVersions()`. The config plugin raises consumer
+  `android.minSdkVersion` to ≥ 26 (libmpv requires API 26). The example assembles
+  with the LGPL AAR linked — libmpv/FFmpeg `.so`s + module classes verified in the
+  APK (`verification/android/g2-compile.md`).
+- **Android runtime libc++/NDK skew (critical):** the AAR was built with NDK r29
+  (clang 21), so `libmpv.so` referenced libc++ symbols absent from the NDK r27
+  (clang 18) `libc++_shared.so` a React Native app bundles → runtime
+  `UnsatisfiedLinkError`, view never loads. The AAR build now pins the NDK to RN's
+  r27 (`android/libmpv-build/build-lgpl-aar.sh`). Diagnosis + the (libc++-patched)
+  on-emulator render/header runs are in `verification/android/`.
 - **Security:** `tls-verify` is no longer forced off; certificates are validated
   by default, opt out per source via `VideoSource.allowSelfSignedTls`.
 - Removed a dead `track-list/count` property observer.
@@ -45,8 +57,13 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
 
 - **iOS:** builds, links, renders, headers, onError, teardown — verified on the
   simulator. G5 (hardware decode) needs a physical device.
-- **Android:** LGPL **G1 proven**; Kotlin sources complete + API-audited; the AAR
-  binary and on-device runtime (G2–G7) are pending an Android-toolchain run.
+- **Android:** LGPL **G1 proven**; **G2 proven** (example assembles & links the
+  AAR). The player stack is exercised on an emulator — `gpu-next` **renders**
+  `sample.mp4`, the exact comma-bearing auth header reaches the server (**G6**),
+  and load failures are observed (**G7** is limited by the JNI wrapper). These
+  used a debug APK repackaged with the AAR's compatible libc++ pending a stock-AAR
+  rebuild with RN's NDK (the libc++/NDK-skew fix above). G5 (hwdec) needs a
+  physical device. See `verification/STATUS.md`.
 
 ## [0.1.0] — First release
 
