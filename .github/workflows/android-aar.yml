@@ -1,19 +1,22 @@
 name: Build LGPL libmpv AAR
 
 # Heavy native build (tens of minutes). Kept separate from PR CI: run on demand
-# or on a schedule, verify LGPL, and publish the AAR as an artifact. PR CI then
-# consumes the prebuilt AAR rather than rebuilding it.
+# or on a schedule, verify LGPL from build output, and publish the AAR + the G1
+# evidence (FFmpeg config.h, mpv gpl option). PR CI consumes the prebuilt AAR.
+#
+# Upstream's download.sh installs the SDK/NDK + OS deps on Ubuntu itself, so this
+# job stays thin.
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: libmpv-android git ref to build from
+        description: libmpv-android git tag/SHA to build from
         required: false
-        default: master
-      abis:
-        description: Comma-separated ABIs
+        default: v1.0.0
+      archs:
+        description: 'Space-separated upstream archs (empty = all). e.g. "arm64 x86_64"'
         required: false
-        default: arm64-v8a,x86_64
+        default: ""
   schedule:
     - cron: "0 6 1 * *" # monthly, to catch upstream/security updates
 
@@ -21,7 +24,7 @@ jobs:
   build-aar:
     name: Build & verify LGPL AAR
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 
@@ -30,25 +33,28 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install NDK + build tools
-        run: |
-          sdkmanager "ndk;29.0.13599879" "cmake;3.31.6" || sdkmanager --list | head
-          sudo apt-get update
-          sudo apt-get install -y meson ninja-build nasm yasm pkg-config autoconf libtool
-
-      - name: Build LGPL AAR
+      - name: Build LGPL AAR (upstream download.sh installs SDK/NDK + deps)
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
-          LIBMPV_ANDROID_REF: ${{ github.event.inputs.ref || 'master' }}
-          ABIS: ${{ github.event.inputs.abis || 'arm64-v8a,x86_64' }}
+          LIBMPV_ANDROID_REF: ${{ github.event.inputs.ref || 'v1.0.0' }}
+          ARCHS: ${{ github.event.inputs.archs || '' }}
         run: |
           chmod +x android/libmpv-build/*.sh
-          ./android/libmpv-build/build-lgpl-aar.sh --abis "$ABIS" --ref "$LIBMPV_ANDROID_REF"
+          ./android/libmpv-build/build-lgpl-aar.sh --ref "$LIBMPV_ANDROID_REF" --archs "$ARCHS"
 
-      - name: Verify LGPL
-        run: ./android/libmpv-build/verify-lgpl.sh android/libmpv-build/.work/libmpv-android
+      - name: Verify LGPL (fail-closed) + capture G1 evidence
+        if: always()
+        run: |
+          ./android/libmpv-build/verify-lgpl.sh \
+            android/libmpv-build/.work/libmpv-android \
+            verification/lgpl | tee verification/lgpl/verify-output.txt
+
+      - name: Upload G1 evidence (config.h / mpv gpl option / verifier output)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lgpl-evidence
+          path: verification/lgpl/*
+          if-no-files-found: warn
 
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4

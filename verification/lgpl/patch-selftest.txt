@@ -1,0 +1,26 @@
+LGPL patch self-test — proves build-lgpl-aar.sh correctly transforms the REAL
+upstream libmpv-android v1.0.0 buildscripts to LGPL. (The previous script
+targeted a literal `--enable-gpl` that does not exist in the brace form, so it
+silently left GPL enabled; and it used a non-existent `-Dlgpl` mpv option.)
+
+Source: jarnedemeulemeester/libmpv-android @ v1.0.0
+
+FFmpeg (buildscripts/scripts/ffmpeg.sh line 31)
+  BEFORE: --disable-static --enable-shared --enable-{gpl,version3} \
+  AFTER:  --disable-static --enable-shared --enable-version3 \
+  assert: no 'gpl' token in any --enable{...} group  -> PASS
+  assert: --enable-version3 present                   -> PASS
+
+mpv (buildscripts/scripts/mpv.sh line 23; mpv's meson `gpl` defaults to true)
+  BEFORE: -Dmanpage-build=disabled
+  AFTER:  -Dmanpage-build=disabled -Dgpl=false
+  assert: -Dgpl=false present                         -> PASS
+
+This validates the patch logic only. The authoritative G1 artifact (the FFmpeg
+build's config.h showing CONFIG_GPL 0, and mpv meson gpl=false) is produced by
+the full build on CI — see android-aar.yml and verify-lgpl.sh (fail-closed).
+
+verify-lgpl.sh fail-closed check (was previously a warn-only no-op):
+  $ verify-lgpl.sh <empty-tree>
+  FAIL: no FFmpeg config.h found — the FFmpeg build did not complete (fail-closed).
+  exit=1
