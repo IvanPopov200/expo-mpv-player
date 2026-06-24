@@ -70,9 +70,10 @@ Remediation round driven by a code review, under an Evidence-Gated Claims rule
   8 Gen 2): H.264 + HEVC via `c2.qti.{avc,hevc}.decoder`, `hwdec: mediacodec-copy`,
   0 dropped frames.
 - **iOS:** G2–G4, G6, G7 verified on the Simulator (builds, links, renders,
-  headers, onError, teardown). **iOS G5 (VideoToolbox hardware decode) is the one
-  remaining gate** — it needs a physical iPhone/iPad (`verification/G5-HANDOFF.md`).
-- See `verification/STATUS.md` for the live gate matrix.
+  headers, onError, teardown). **G5 hardware decode** verified on a **physical
+  iPhone 14 Pro** (A16): H.264 + HEVC via `hwdec-current=videotoolbox`, 0 dropped
+  frames (`verification/ios/g5-hwdec.txt`).
+- **All gates now pass on both platforms** — see `verification/STATUS.md`.
 
 ## [0.1.0] — First release
 

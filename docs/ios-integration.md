@@ -95,5 +95,7 @@ Verified on this machine (Xcode 26.5, iOS Simulator):
 > → "Cannot read property 'default' of undefined". **Fix: pin react `19.2.3`.**
 > Consumers must likewise match react to whatever their react-native bundles.
 
-The hardware-decode smoke test (10-bit HEVC MKV, `hwdec=videotoolbox`) still
-requires a **physical device** — simulators cannot use VideoToolbox hwdec (G5).
+Hardware decode (G5) is **verified on a physical iPhone 14 Pro** (A16): H.264 and
+HEVC both report `hwdec-current=videotoolbox` with 0 dropped frames
+(`verification/ios/g5-hwdec.txt`). Simulators cannot use VideoToolbox hwdec, so a
+real device is required to reproduce.
