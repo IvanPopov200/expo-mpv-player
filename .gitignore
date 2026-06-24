@@ -210,3 +210,11 @@ lcov.info
 *.tar
 *.tar.gz
 ```
+
+# expo-mpv-player module-specific
+# Compiled config-plugin output (published via package.json "files", not git)
+plugin/build/
+# Built/vendored LGPL libmpv binaries — never commit binaries; build via CI (see android/libmpv-build)
+android/libs/*.aar
+android/libs/*.so
+*.xcframework/

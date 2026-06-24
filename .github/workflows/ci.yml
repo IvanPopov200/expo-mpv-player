@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: Lint, typecheck & test (JS/TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (src)
+        run: npx expo-module lint --max-warnings=0
+      - name: Lint (plugin)
+        run: npx expo-module lint plugin --max-warnings=0
+      - name: Test (TS layer)
+        run: npm test -- --ci
+      - name: Test (config plugin)
+        run: npm run test:plugin -- --ci
+      - name: Build (package + plugin)
+        run: |
+          npm run build
+          npm run build:plugin
+
+  license-check:
+    name: License check (LGPL-only engine)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject GPL iOS product (MPVKit-GPL)
+        run: |
+          if git grep -nE 'MPVKit-GPL' -- ':!*.md' ':!NOTICE' ':!CONTRIBUTING.md' ':!.github/'; then
+            echo "::error::Found a reference to the GPL 'MPVKit-GPL' product. Use the LGPL 'MPVKit' product."
+            exit 1
+          fi
+          echo "OK: no MPVKit-GPL reference."
+      - name: Reject GPL FFmpeg build flag (--enable-gpl)
+        run: |
+          if git grep -nE '\-\-enable-gpl' -- ':!*.md' ':!NOTICE' ':!CONTRIBUTING.md' ':!.github/'; then
+            echo "::error::Found '--enable-gpl' in the build config. FFmpeg must be built LGPL (--enable-version3, no --enable-gpl)."
+            exit 1
+          fi
+          echo "OK: no --enable-gpl flag."
+      - name: Reject GPL Android Maven artifact (dev.jdtech.mpv:libmpv)
+        run: |
+          if git grep -nE 'dev\.jdtech\.mpv:libmpv' -- ':!*.md' ':!NOTICE' ':!CONTRIBUTING.md' ':!.github/'; then
+            echo "::error::Found the GPL prebuilt artifact 'dev.jdtech.mpv:libmpv'. Build and link the LGPL AAR instead."
+            exit 1
+          fi
+          echo "OK: no GPL Maven artifact reference."

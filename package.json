@@ -1,0 +1,73 @@
+{
+  "name": "expo-mpv-player",
+  "version": "0.1.0-rc.0",
+  "description": "A play-anything video player for Expo and React Native, powered by libmpv. Direct-plays MKV, 10-bit HEVC, VC-1, DTS-HD, TrueHD, E-AC3, PGS/ASS subtitles — no server-side transcode.",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "expo-module build",
+    "build:plugin": "tsc --build plugin",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "test:plugin": "expo-module test plugin",
+    "typecheck": "tsc --noEmit",
+    "prepare": "expo-module prepare && tsc --build plugin",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-mpv-player",
+    "MpvPlayer",
+    "mpv",
+    "libmpv",
+    "video",
+    "player",
+    "hevc",
+    "mkv",
+    "codec"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanPopov200/expo-mpv-player.git"
+  },
+  "bugs": {
+    "url": "https://github.com/IvanPopov200/expo-mpv-player/issues"
+  },
+  "homepage": "https://github.com/IvanPopov200/expo-mpv-player#readme",
+  "license": "MIT",
+  "files": [
+    "build",
+    "plugin/build",
+    "android/src",
+    "android/build.gradle",
+    "android/libmpv-build",
+    "ios",
+    "expo-module.config.json",
+    "app.plugin.js",
+    "NOTICE",
+    "!**/__tests__",
+    "!**/__mocks__"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@testing-library/react-native": "^14.0.1",
+    "@types/node": "^22.20.0",
+    "@types/react": "~19.2.0",
+    "expo": "^56.0.0",
+    "expo-module-scripts": "^56.0.0",
+    "jest-expo": "^56.0.5",
+    "react": "19.2.7",
+    "react-native": "0.85.3",
+    "typescript": "^5.9.0"
+  }
+}
