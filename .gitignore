@@ -146,22 +146,13 @@ ehthumbs.db
 Desktop.ini
 
 # ---------------------------------------------------------------------------
-# Markdown docs
-# Ignore all .md files except README and CONTRIBUTING variants.
-# This also keeps agent docs like AGENTS.md, CLAUDE.md, GEMINI.md, etc. out.
+# Coding-agent doc files (keep these out). NOTE: project documentation —
+# CHANGELOG.md and docs/ — is a shipped deliverable and IS tracked, so this
+# project does NOT blanket-ignore *.md.
 # ---------------------------------------------------------------------------
-*.md
-!README.md
-!README.MD
-!readme.md
-!Contributing.md
-!CONTRIBUTING.md
-!CONTRIBUTING.MD
-!contributing.md
-
-# ---------------------------------------------------------------------------
-# Coding agents / AI assistant local files
-# ---------------------------------------------------------------------------
+AGENTS.md
+CLAUDE.md
+GEMINI.md
 AGENTS.local.md
 CLAUDE.local.md
 GEMINI.local.md
