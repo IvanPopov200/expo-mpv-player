@@ -1,0 +1,9 @@
+# Expo / dev-build generated native projects and caches
+.expo/
+node_modules/
+dist/
+web-build/
+ios/
+android/
+*.log
+.DS_Store

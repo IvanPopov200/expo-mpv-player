@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <!-- PiP is declared but not required; PiP itself is a later-milestone feature. -->
+  <uses-feature
+    android:name="android.software.picture_in_picture"
+    android:required="false" />
+</manifest>

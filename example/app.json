@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "expo-mpv-player-example",
+    "slug": "expo-mpv-player-example",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.expompvplayer.example"
+    },
+    "android": {
+      "package": "com.expompvplayer.example"
+    },
+    "plugins": [
+      [
+        "expo-mpv-player",
+        {
+          "androidAbiFilters": ["arm64-v8a", "x86_64"],
+          "enableCleartextTraffic": true,
+          "defaultVoDriver": "gpu-next"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": { "useFrameworks": "static" }
+        }
+      ]
+    ]
+  }
+}

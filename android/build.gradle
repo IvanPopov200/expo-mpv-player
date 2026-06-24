@@ -1,0 +1,40 @@
+apply plugin: 'com.android.library'
+
+group = 'expo.modules.mpvplayer'
+version = '0.1.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+android {
+  namespace "expo.modules.mpvplayer"
+  defaultConfig {
+    minSdkVersion 26
+    // Trim the native payload; add more ABIs only if you need them. The config
+    // plugin can override these from the consumer app (androidAbiFilters).
+    ndk {
+      abiFilters 'arm64-v8a', 'x86_64'
+    }
+  }
+
+  // The LGPL libmpv AAR (built in M2 from android/libmpv-build/) is dropped into
+  // android/libs/ and its packaged .so files are picked up from there.
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['libs']
+    }
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // M2: link the custom LGPL libmpv AAR you build from android/libmpv-build/.
+  // Never link the GPL prebuilt libmpv Maven artifact — see NOTICE / CONTRIBUTING.
+  // implementation files('libs/expo-mpv-player-libmpv-lgpl-1.0.0.aar')
+}

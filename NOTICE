@@ -1,0 +1,70 @@
+expo-mpv-player
+Copyright (c) 2026 Ivan Popov and expo-mpv-player contributors
+
+The wrapper code in this repository (TypeScript, Swift, Kotlin, the config
+plugin, and the example app) is licensed under the MIT License (see LICENSE).
+
+================================================================================
+BUNDLED THIRD-PARTY COMPONENTS — mpv and FFmpeg, under the LGPL
+================================================================================
+
+This package bundles the mpv media player and FFmpeg. These are dynamically
+linkable libraries licensed under the GNU Lesser General Public License (LGPL).
+They are NOT covered by the MIT license above. Both platforms intentionally
+ship LGPL builds (never GPL builds) so a closed-source application may link
+them, provided the application honors the LGPL terms.
+
+--------------------------------------------------------------------------------
+iOS / tvOS
+--------------------------------------------------------------------------------
+Component:   mpv + FFmpeg, via MPVKit
+Product:     "MPVKit" (LGPL v3.0) — NOT "MPVKit-GPL"
+FFmpeg:      built WITHOUT --enable-gpl (LGPL configuration)
+Source:      https://github.com/mpvkit/MPVKit  (see its release tags for the
+             exact mpv / FFmpeg versions bundled by the pinned MPVKit release)
+License:     GNU LGPL v3.0
+
+  mpv:    https://github.com/mpv-player/mpv      (LGPL v2.1+)
+  FFmpeg: https://ffmpeg.org/                    (LGPL v2.1+, version3 enabled)
+
+--------------------------------------------------------------------------------
+Android
+--------------------------------------------------------------------------------
+Component:   mpv + FFmpeg, built as a custom LGPL libmpv AAR
+mpv:         configured with --enable-lgpl
+FFmpeg:      configured WITHOUT --enable-gpl, using --enable-version3 (LGPL v3)
+Build:       the public build scripts used to produce the AAR live in this
+             repository under android/libmpv-build/. They are derived from
+             https://github.com/jarnedemeulemeester/libmpv-android
+License:     GNU LGPL v3.0
+
+  NOTE: The prebuilt Maven artifact dev.jdtech.mpv:libmpv:* is a GPL build and
+  is deliberately NOT used by this package.
+
+================================================================================
+WRITTEN OFFER OF SOURCE (LGPL)
+================================================================================
+
+The complete corresponding source code for the bundled LGPL components is
+available at:
+
+  - mpv:    https://github.com/mpv-player/mpv
+  - FFmpeg: https://github.com/FFmpeg/FFmpeg  (mirror of https://ffmpeg.org/)
+  - iOS packaging (MPVKit):   https://github.com/mpvkit/MPVKit
+  - Android packaging/build:  the android/libmpv-build/ scripts in this
+                              repository, derived from
+                              https://github.com/jarnedemeulemeester/libmpv-android
+
+A consuming application that distributes these libraries must keep them
+dynamically linkable / replaceable, must reproduce this attribution notice
+(for example, in an in-app open-source licenses screen), and must not obfuscate
+the libraries. See the "Licensing" section of the README for the plain-English
+summary.
+
+================================================================================
+NOT LEGAL ADVICE
+================================================================================
+
+This notice is informational and is not legal advice. Codec PATENT licensing
+(for example HEVC and AAC) is a separate concern from open-source licensing. If
+you distribute a commercial application, obtain your own legal review.
