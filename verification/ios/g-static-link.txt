@@ -1,0 +1,26 @@
+# G-static — example builds & links on STATIC frameworks (vendored MPVKit)
+
+The consumer app does NOT set useFrameworks. The LGPL MPVKit xcframeworks are
+vendored by the ExpoMpvPlayer pod (static libs), so they link into the app once
+— no duplicate MoltenVK/FFmpeg symbols, and no dynamic-frameworks requirement
+(which broke other RN native modules' React-core linking).
+
+## Build (iphonesimulator, Debug, default/static pod linkage)
+```
+** BUILD SUCCEEDED **
+no-such-module errors : 0
+duplicate-symbol errors: 0
+undefined-symbol errors: 0
+ld errors             : 0
+```
+
+## libmpv is actually linked (not dead-stripped)
+```
+_mpv_create is DEFINED (T) in expompvplayerexample.debug.dylib
+(Xcode debug-dylib split; the 124K main binary is the launcher stub)
+```
+
+## Podfile / config
+- example/app.json: expo-build-properties dynamic-frameworks plugin REMOVED
+- Podfile.properties.json: no ios.useFrameworks key -> static pod linkage
+- ExpoMpvPlayer.debug.xcconfig FRAMEWORK_SEARCH_PATHS includes ios/Frameworks

@@ -1,17 +1,18 @@
-# iOS integration & the MPVKit (LGPL) SPM decision
+# iOS integration: vendored LGPL MPVKit xcframeworks
 
-This records the M1 spike decision for how the iOS engine is linked (plan §7.1,
-§13.2).
+How the iOS engine is linked. **This supersedes the earlier "SPM package +
+dynamic frameworks" approach**, which required app-wide dynamic frameworks and
+broke React-core linking for other RN native modules in real apps. The engine is
+now vendored as static xcframeworks by this module's pod; the consumer app stays
+on its default (static) linkage.
 
 ## Engine: MPVKit, the `MPVKit` (LGPL) product
 
-- Dependency: [`MPVKit`](https://github.com/mpvkit/MPVKit) via Swift Package
-  Manager. Pin a released tag at build time (research saw `0.41.0`, bundling
-  mpv 0.41.0 + FFmpeg n8.1.1).
+- The prebuilt [`MPVKit`](https://github.com/mpvkit/MPVKit) LGPL xcframeworks,
+  pinned to `0.41.0` (bundling mpv 0.41.0 + FFmpeg n8.1.1).
 - Swift imports the underlying C module: `import Libmpv` (not `import MPVKit`).
-- **Use the `MPVKit` product (LGPL v3), never `MPVKit-GPL`.** The FFmpeg inside
-  `MPVKit` is built without `--enable-gpl`. CI's license check rejects any
-  `MPVKit-GPL` reference.
+- **Use the `MPVKit` product (LGPL v3), never the GPL one.** The FFmpeg inside
+  is built without `--enable-gpl`. CI's license check rejects the GPL product.
 
 ## Rendering path (LGPL Metal, not avfoundation)
 
@@ -29,60 +30,65 @@ Consequences:
   `CAMetalLayer.drawableSize` away from 1×1 (`MPVMetalLayer` does this), and HDR
   Metal API validation may need disabling in the consuming app's scheme.
 
-## How the SPM package reaches the build
+## How the engine reaches the build: vendored LGPL xcframeworks
 
-MPVKit is **SPM-only** (no CocoaPods/`-av` fork — that fork is GPL). Expo modules
-are linked via CocoaPods, so the SPM package must be added to the **consumer
-app's Xcode project** during `expo prebuild`.
+The libmpv engine ships as MPVKit's prebuilt **LGPL** xcframeworks, **vendored by
+this module's own pod** — not added to the consumer's Xcode project as an SPM
+package. `ios/ExpoMpvPlayer.podspec` declares:
 
-**Chosen approach (validated by a real simulator build):** the config plugin
-injects a `post_install` hook into the Expo Podfile (`plugin/src/index.ts`) that:
-
-1. registers the `MPVKit` Swift Package on the **Pods** project and links the
-   `MPVKit` product to the module's pod target (`ExpoMpvPlayer`) so
-   `import Libmpv` compiles;
-2. registers the package on the **app** project so Xcode resolves the package
-   graph for the workspace; and
-3. **force-links MPVKit's framework closure** on the app target via
-   `OTHER_LDFLAGS` (`-framework Libmpv -framework Libass …`). This is required
-   because SPM's product autolinking does **not** propagate MPVKit's binary
-   xcframeworks through a CocoaPods pod — empirically, only `Libmpv` links and
-   the rest (libass, FFmpeg, …) are reported as undefined symbols.
-
-The framework list is pinned to MPVKit 0.41.0 in `MPVKIT_FRAMEWORKS`; update it
-when bumping the MPVKit version.
-
-**Fallback approach:** vendor MPVKit's prebuilt **LGPL** xcframeworks and
-reference them from `ios/ExpoMpvPlayer.podspec` via `vendored_frameworks` (still
-the LGPL binaries, never the GPL ones).
-
-## Required consumer setting: DYNAMIC frameworks
-
-The app must build iOS with **dynamic** frameworks:
-
-```json
-["expo-build-properties", { "ios": { "useFrameworks": "dynamic" } }]
+```ruby
+s.vendored_frameworks = 'Frameworks/*.xcframework'
 ```
 
-> **Why dynamic, not static** (corrects an earlier assumption): MPVKit ships
-> binary xcframeworks. Under `static` linkage the pod and the app each embed
-> them, so the build fails with **duplicate MoltenVK/FFmpeg symbols**. Dynamic
-> linkage links each framework once. Verified empirically against MPVKit 0.41.0
-> on an iOS Simulator build. The config plugin warns if dynamic is not set.
+plus the system frameworks/libraries the static MPVKit closure needs at link time
+(`AVFoundation`, `CoreMedia`, `Metal`, `VideoToolbox`, …; `bz2`, `iconv`, `z`,
+`c++`, …), mirroring MPVKit's SPM `linkerSettings`.
+
+The binaries are MPVKit's **static** xcframeworks. Under the consumer app's
+**default (static) pod linkage** they link into the app exactly **once**, via this
+pod — no duplicate-symbol double-embed. `import Libmpv` resolves from the vendored
+`Libmpv.xcframework`'s module map.
+
+The xcframeworks are large (~1 GB) and **not committed to git**. Fetch them into
+`ios/Frameworks/` before building:
+
+```bash
+scripts/fetch-mpvkit-xcframeworks.sh   # pinned LGPL release, checksum-verified
+```
+
+The podspec's `prepare_command` runs this automatically during `pod install` when
+`ios/Frameworks/` is empty. The full LGPL closure (28 frameworks) is the `MPVKit`
+(non-GPL) product's transitive binary targets; the script is **LGPL-only** and
+fails closed on any `-GPL` artifact. Bump the pinned MPVKit version and the
+script's list together, then re-verify LGPL provenance.
+
+## Consumer setup: nothing special — keep STATIC frameworks
+
+The module imposes **no** `useFrameworks` requirement. Do **not** set
+`useFrameworks: "dynamic"`.
+
+> **Why static, not dynamic** (this supersedes the earlier dynamic-frameworks
+> approach): the previous design force-linked the MPVKit closure on the app target
+> and required app-wide **dynamic** frameworks. That breaks real apps — under
+> dynamic frameworks every pod becomes its own framework that must explicitly link
+> React, and third-party RN native modules (e.g. `react-native-purchases`) don't,
+> so they fail at link time with `Undefined symbols: _OBJC_CLASS_$_RCTEventEmitter
+> … _RCTRegisterModule`. Vendoring the **static** xcframeworks lets the app stay on
+> its default static linkage: MPVKit links once through this pod, and every other
+> native module links normally. Verified against MPVKit 0.41.0.
 
 ## Validation status (updated)
 
 Verified on this machine (Xcode 26.5, iOS Simulator):
 
-- ✅ MPVKit **LGPL 0.41.0** SPM package resolves.
-- ✅ The config plugin's `post_install` hook generates a correct Pods/app
-  project graph on a real `expo prebuild`.
+- ✅ The example app **builds and links on STATIC frameworks** with the vendored
+  LGPL xcframeworks — **no duplicate MoltenVK/FFmpeg symbols**, `import Libmpv`
+  resolves, and `_mpv_create` is linked into the app (`verification/ios/g-static-link.txt`).
 - ✅ The iOS Swift engine **compiles** against the real `Libmpv` C module
   (this caught and fixed a real `mpv_command` C-interop bug).
-- ✅ The example app **builds and links** for the iOS Simulator end-to-end via
-  the config plugin (`BUILD SUCCEEDED`), producing `expompvplayerexample.app`.
-- ✅ The app **launches** on the simulator without a native crash (the native
-  module loads).
+- ✅ A **community RN native module** (`react-native-safe-area-context`) builds in
+  the same example under static linkage — the configuration that the old
+  dynamic-frameworks requirement broke (`verification/ios/g-realapp-link.txt`).
 - ✅ **`<MpvPlayerView>` renders decoded video frames** on the simulator (G4) —
   see `verification/ios/g4-render.png`. The same run shows `onProgress`,
   `onPlaybackStateChange`, and audio-track enumeration working.

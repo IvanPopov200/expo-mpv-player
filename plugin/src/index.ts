@@ -1,14 +1,10 @@
 import {
   AndroidConfig,
   type ConfigPlugin,
-  WarningAggregator,
   withAndroidManifest,
-  withDangerousMod,
   withGradleProperties,
   createRunOncePlugin,
 } from "expo/config-plugins";
-import { promises as fs } from "fs";
-import path from "path";
 
 const pkg = require("../../package.json") as { name: string; version: string };
 
@@ -22,16 +18,17 @@ export interface MpvPlayerPluginProps {
   defaultVoDriver?: "gpu-next" | "gpu";
 }
 
-// MPVKit, the LGPL product (NOT the GPL product). Pin upToNextMajorVersion.
-const MPVKIT_REPO = "https://github.com/mpvkit/MPVKit.git";
-const MPVKIT_MIN_VERSION = "0.41.0";
-const MPVKIT_PRODUCT = "MPVKit";
 const DEFAULT_ABIS = ["arm64-v8a", "x86_64"];
 const VO_DRIVER_META = "expo.modules.mpvplayer.DEFAULT_VO_DRIVER";
 // libmpv's prebuilt .so's require API 26. The Expo root-project gradle plugin
 // reads `android.minSdkVersion` from gradle.properties (default 24), so we raise
 // it here for every consumer app — never lower an already-higher value.
 const MIN_SDK_VERSION = 26;
+
+// iOS needs NOTHING from the config plugin: the LGPL MPVKit xcframeworks are
+// vendored by the pod itself (ios/ExpoMpvPlayer.podspec), so the app links them
+// once under its default (static) pod linkage. No SPM injection, no Podfile
+// patching, and no `useFrameworks: "dynamic"` requirement.
 
 // ---------------------------------------------------------------------------
 // Pure Android-manifest helpers (exported for unit tests)
@@ -164,164 +161,6 @@ const withMpvPlayerAndroid: ConfigPlugin<MpvPlayerPluginProps> = (
 };
 
 // ---------------------------------------------------------------------------
-// iOS mods: link the MPVKit (LGPL) SPM package + assert static frameworks
-// ---------------------------------------------------------------------------
-
-// Marker so the Podfile hook is inserted exactly once.
-const POD_HOOK_MARKER = "expo-mpv-player: link the MPVKit";
-
-// The LGPL framework closure MPVKit 0.41.0 resolves. SPM's product autolinking
-// does not propagate these binary frameworks through CocoaPods, so the app must
-// link them explicitly (verified empirically). Update this list when bumping the
-// pinned MPVKit version.
-const MPVKIT_FRAMEWORKS = [
-  "gmp",
-  "gnutls",
-  "hogweed",
-  "lcms2",
-  "Libass",
-  "Libavcodec",
-  "Libavdevice",
-  "Libavfilter",
-  "Libavformat",
-  "Libavutil",
-  "Libbluray",
-  "Libcrypto",
-  "Libdav1d",
-  "Libdovi",
-  "Libfreetype",
-  "Libfribidi",
-  "Libharfbuzz",
-  "Libmpv",
-  "Libplacebo",
-  "Libshaderc_combined",
-  "Libssl",
-  "Libswresample",
-  "Libswscale",
-  "Libuavs3d",
-  "Libuchardet",
-  "Libunibreak",
-  "nettle",
-];
-
-// Ruby injected into the Expo Podfile's `post_install` block. It:
-//  1. registers the MPVKit (LGPL) Swift Package on the Pods project and links the
-//     `MPVKit` product to the module pod target (`ExpoMpvPlayer`) so `import
-//     Libmpv` compiles;
-//  2. registers the package on the app (user) project so Xcode resolves it; and
-//  3. force-links MPVKit's framework closure on the app target via OTHER_LDFLAGS,
-//     because SPM's product autolinking does not propagate binary frameworks
-//     through CocoaPods.
-// Requires dynamic frameworks (static double-embeds → duplicate symbols).
-const POD_HOOK = `
-    # ${POD_HOOK_MARKER} (LGPL) Swift Package
-    mpv_frameworks = %w[${MPVKIT_FRAMEWORKS.join(" ")}]
-    mpv_proj = installer.pods_project
-    unless mpv_proj.root_object.package_references.any? { |r| r.respond_to?(:repositoryURL) && r.repositoryURL.to_s.include?('MPVKit') }
-      mpv_pkg = mpv_proj.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-      mpv_pkg.repositoryURL = '${MPVKIT_REPO}'
-      mpv_pkg.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '${MPVKIT_MIN_VERSION}' }
-      mpv_proj.root_object.package_references << mpv_pkg
-      mpv_target = mpv_proj.targets.find { |t| t.name == 'ExpoMpvPlayer' }
-      if mpv_target
-        mpv_dep = mpv_proj.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-        mpv_dep.package = mpv_pkg
-        mpv_dep.product_name = '${MPVKIT_PRODUCT}'
-        mpv_target.package_product_dependencies << mpv_dep
-      end
-      mpv_proj.save
-    end
-    installer.aggregate_targets.each do |agg|
-      up = agg.user_project
-      next unless up
-      unless up.root_object.package_references.any? { |r| r.respond_to?(:repositoryURL) && r.repositoryURL.to_s.include?('MPVKit') }
-        up_pkg = up.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-        up_pkg.repositoryURL = '${MPVKIT_REPO}'
-        up_pkg.requirement = { 'kind' => 'upToNextMajorVersion', 'minimumVersion' => '${MPVKIT_MIN_VERSION}' }
-        up.root_object.package_references << up_pkg
-      end
-      agg.user_targets.each do |ut|
-        ut.build_configurations.each do |c|
-          flags = c.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
-          flags = [flags] unless flags.is_a?(Array)
-          mpv_frameworks.each do |fw|
-            next if flags.include?(fw)
-            flags += ['-framework', fw]
-          end
-          c.build_settings['OTHER_LDFLAGS'] = flags
-        end
-      end
-      up.save
-    end
-`;
-
-/**
- * Inserts the MPVKit Podfile hook into an Expo Podfile (idempotent). Anchors on
- * the `post_install do |installer|` line that every Expo Podfile generates.
- * Exported for unit testing.
- */
-export function addMpvKitPodfileHook(contents: string): string {
-  if (contents.includes(POD_HOOK_MARKER)) return contents;
-  const anchor = /post_install do \|installer\|\n/;
-  if (!anchor.test(contents)) return contents;
-  return contents.replace(anchor, (match) => match + POD_HOOK);
-}
-
-const withMpvPlayerIos: ConfigPlugin<MpvPlayerPluginProps> = (config) => {
-  assertDynamicFrameworks(config);
-  config = withDangerousMod(config, [
-    "ios",
-    async (cfg) => {
-      const podfile = path.join(cfg.modRequest.platformProjectRoot, "Podfile");
-      try {
-        const original = await fs.readFile(podfile, "utf8");
-        const patched = addMpvKitPodfileHook(original);
-        if (patched === original && !original.includes(POD_HOOK_MARKER)) {
-          WarningAggregator.addWarningIOS(
-            "expo-mpv-player",
-            `Could not find the Podfile post_install hook to inject MPVKit. Add the MPVKit (LGPL) Swift Package (${MPVKIT_REPO}, product "${MPVKIT_PRODUCT}") to the ExpoMpvPlayer pod target manually.`,
-          );
-        } else {
-          await fs.writeFile(podfile, patched);
-        }
-      } catch (e) {
-        WarningAggregator.addWarningIOS(
-          "expo-mpv-player",
-          `Failed to patch the Podfile for MPVKit (${String(e)}). Add the package manually.`,
-        );
-      }
-      return cfg;
-    },
-  ]);
-  return config;
-};
-
-/**
- * Warn unless the consumer has enabled **dynamic** frameworks. MPVKit ships
- * binary xcframeworks; with static linkage they get double-embedded (pod + app)
- * and the build fails with duplicate MoltenVK/FFmpeg symbols. Dynamic linkage
- * links each framework once. Verified empirically against MPVKit 0.41.0.
- */
-export function assertDynamicFrameworks(config: {
-  plugins?: unknown[] | null;
-}): boolean {
-  const plugins = config.plugins ?? [];
-  const buildProps = plugins.find(
-    (p) => (Array.isArray(p) ? p[0] : p) === "expo-build-properties",
-  ) as [string, { ios?: { useFrameworks?: string } }] | undefined;
-  const isDynamic =
-    Array.isArray(buildProps) &&
-    buildProps[1]?.ios?.useFrameworks === "dynamic";
-  if (!isDynamic) {
-    WarningAggregator.addWarningIOS(
-      "expo-mpv-player",
-      'iOS requires dynamic frameworks. Add ["expo-build-properties", { "ios": { "useFrameworks": "dynamic" } }] to your config.',
-    );
-  }
-  return isDynamic;
-}
-
-// ---------------------------------------------------------------------------
 // Entry
 // ---------------------------------------------------------------------------
 
@@ -330,8 +169,8 @@ const withMpvPlayer: ConfigPlugin<MpvPlayerPluginProps | void> = (
   props,
 ) => {
   const resolved: MpvPlayerPluginProps = props || {};
+  // iOS requires no config-plugin mods (vendored xcframeworks in the podspec).
   config = withMpvPlayerAndroid(config, resolved);
-  config = withMpvPlayerIos(config, resolved);
   return config;
 };
 

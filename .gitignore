@@ -209,3 +209,5 @@ plugin/build/
 android/libs/*.aar
 android/libs/*.so
 *.xcframework/
+# Vendored LGPL MPVKit xcframeworks (fetch via scripts/fetch-mpvkit-xcframeworks.sh)
+ios/Frameworks/

@@ -5,6 +5,27 @@ All notable changes to this project are documented here. The format follows
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Entries are
 derived from Conventional Commit subjects merged to `main`.
 
+## [0.1.0-rc.1]
+
+### Fixed
+
+- **iOS linking — vendored LGPL xcframeworks; drop app-wide dynamic frameworks
+  (critical):** the old approach injected the MPVKit SPM package + force-linked its
+  framework closure on the app target, which required `useFrameworks: "dynamic"`.
+  In a real app that breaks other RN native modules — under app-wide dynamic
+  frameworks they fail to link React core (`Undefined symbols:
+  _OBJC_CLASS_$_RCTEventEmitter … _RCTRegisterModule`). The bare example never hit
+  this. Now the LGPL MPVKit **static** xcframeworks are **vendored by the pod**
+  (`ios/ExpoMpvPlayer.podspec` → `vendored_frameworks`), so the consumer app stays
+  on its default **static** linkage — MPVKit links once, other modules link
+  normally, no `useFrameworks` requirement. The config plugin no longer touches
+  the Podfile or requires dynamic frameworks. New
+  `scripts/fetch-mpvkit-xcframeworks.sh` downloads the LGPL closure (28
+  xcframeworks, checksum-verified, gitignored). Verified: builds & links on static
+  with no duplicate symbols (`verification/ios/g-static-link.txt`), a community
+  native module links in the same app (`verification/ios/g-realapp-link.txt`), and
+  the player renders (`verification/ios/g4-static-render.png`).
+
 ## [Unreleased]
 
 Remediation round driven by a code review, under an Evidence-Gated Claims rule
