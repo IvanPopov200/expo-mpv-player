@@ -1,6 +1,4 @@
 import withMpvPlayer, {
-  addMpvKitPodfileHook,
-  assertDynamicFrameworks,
   ensureInternetPermission,
   ensureMinSdkVersion,
   ensurePictureInPictureFeature,
@@ -8,17 +6,6 @@ import withMpvPlayer, {
   setReactNativeArchitectures,
   setUsesCleartextTraffic,
 } from "../index";
-
-const PODFILE = `require 'json'
-
-target 'app' do
-  use_react_native!(:path => config[:reactNativePath])
-
-  post_install do |installer|
-    react_native_post_install(installer, config[:reactNativePath])
-  end
-end
-`;
 
 const baseConfig = () => ({ name: "example", slug: "example" });
 
@@ -148,57 +135,18 @@ describe("ensureMinSdkVersion", () => {
   });
 });
 
-describe("assertDynamicFrameworks", () => {
-  it("passes when expo-build-properties sets dynamic frameworks", () => {
-    const ok = assertDynamicFrameworks({
-      plugins: [
-        ["expo-build-properties", { ios: { useFrameworks: "dynamic" } }],
-      ],
-    });
-    expect(ok).toBe(true);
+describe("iOS: no config-plugin requirements", () => {
+  // The LGPL MPVKit xcframeworks are vendored by the podspec, so the plugin must
+  // NOT touch the Podfile or require dynamic frameworks. Applying it without any
+  // expo-build-properties / useFrameworks config must succeed.
+  it("applies with no iOS frameworks config and returns the config", () => {
+    const result = withMpvPlayer(baseConfig() as any);
+    expect(result.name).toBe("example");
   });
 
-  it("fails (warns) when dynamic frameworks are not configured", () => {
-    expect(assertDynamicFrameworks({ plugins: [] })).toBe(false);
-    expect(
-      assertDynamicFrameworks({
-        plugins: [
-          ["expo-build-properties", { ios: { useFrameworks: "static" } }],
-        ],
-      }),
-    ).toBe(false);
-  });
-});
-
-describe("addMpvKitPodfileHook", () => {
-  it("injects the MPVKit hook into the post_install block", () => {
-    const out = addMpvKitPodfileHook(PODFILE);
-    expect(out).toContain("github.com/mpvkit/MPVKit.git");
-    expect(out).toContain("product_name = 'MPVKit'");
-    expect(out).toContain("ExpoMpvPlayer");
-    // Hook lands inside the post_install block.
-    expect(out.indexOf("post_install do |installer|")).toBeLessThan(
-      out.indexOf("mpv_proj = installer.pods_project"),
-    );
-  });
-
-  it("targets only the LGPL product/repo (no GPL variant)", () => {
-    const out = addMpvKitPodfileHook(PODFILE);
-    expect(out).toContain("product_name = 'MPVKit'");
-    // The GPL product/repo carries a "MPVKit-" suffix; assert none appears.
-    expect(out).not.toMatch(/MPVKit-/);
-  });
-
-  it("is idempotent — does not insert twice", () => {
-    const once = addMpvKitPodfileHook(PODFILE);
-    const twice = addMpvKitPodfileHook(once);
-    const occurrences =
-      twice.split("mpv_proj = installer.pods_project").length - 1;
-    expect(occurrences).toBe(1);
-  });
-
-  it("leaves a Podfile without the anchor unchanged", () => {
-    const noAnchor = "target 'app' do\nend\n";
-    expect(addMpvKitPodfileHook(noAnchor)).toBe(noAnchor);
+  it("no longer exports the removed SPM/dynamic-frameworks helpers", () => {
+    const mod: Record<string, unknown> = require("../index");
+    expect(mod.addMpvKitPodfileHook).toBeUndefined();
+    expect(mod.assertDynamicFrameworks).toBeUndefined();
   });
 });

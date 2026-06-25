@@ -1,0 +1,20 @@
+# G-realapp — a community RN native module links alongside MPVKit (static)
+
+Reproduces the host-app condition the bare example lacked: a non-Expo RN native
+module present in the same app. Under the OLD dynamic-frameworks requirement this
+is exactly what failed (RCTEventEmitter / RCTRegisterModule undefined symbols).
+
+Added: react-native-safe-area-context 5.7.0 (Obj-C native module, autolinked,
+built from source). Example built for iphonesimulator, Debug, STATIC linkage.
+
+```
+** BUILD SUCCEEDED **
+react-native-safe-area-context compile units: 135
+duplicate-symbol errors: 0
+undefined-symbol errors: 0
+no-such-module errors  : 0
+88 pods installed (87 + the community module)
+```
+
+Final proof of the full host stack (react-native-purchases, sentry, widgets)
+happens in the consumer app (Constellarr); this confirms the mechanism.

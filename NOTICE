@@ -8,20 +8,28 @@ plugin, and the example app) is licensed under the MIT License (see LICENSE).
 BUNDLED THIRD-PARTY COMPONENTS — mpv and FFmpeg, under the LGPL
 ================================================================================
 
-This package bundles the mpv media player and FFmpeg. These are dynamically
-linkable libraries licensed under the GNU Lesser General Public License (LGPL).
-They are NOT covered by the MIT license above. Both platforms intentionally
-ship LGPL builds (never GPL builds) so a closed-source application may link
-them, provided the application honors the LGPL terms.
+This package bundles the mpv media player and FFmpeg, licensed under the GNU
+Lesser General Public License (LGPL). They are NOT covered by the MIT license
+above. Both platforms intentionally ship LGPL builds (never GPL builds) so a
+closed-source application may link them, provided the application honors the LGPL
+terms. Linkage differs by platform: Android links libmpv as a shared library
+(.so); iOS links the LGPL MPVKit xcframeworks statically (see the LGPL §6 note
+at the end).
 
 --------------------------------------------------------------------------------
 iOS / tvOS
 --------------------------------------------------------------------------------
 Component:   mpv + FFmpeg, via MPVKit
 Product:     "MPVKit" (LGPL v3.0) — NOT "MPVKit-GPL"
+Linkage:     the LGPL MPVKit prebuilt xcframeworks (the "MPVKit" product's binary
+             targets) are VENDORED by this module's pod (ios/ExpoMpvPlayer.podspec
+             -> vendored_frameworks) and linked statically into the app. They are
+             fetched by scripts/fetch-mpvkit-xcframeworks.sh (checksum-verified,
+             LGPL-only) and are not committed to git.
 FFmpeg:      built WITHOUT --enable-gpl (LGPL configuration)
-Source:      https://github.com/mpvkit/MPVKit  (see its release tags for the
-             exact mpv / FFmpeg versions bundled by the pinned MPVKit release)
+Pinned:      MPVKit 0.41.0 (bundles mpv 0.41.0 + FFmpeg n8.1.1)
+Source:      https://github.com/mpvkit/MPVKit  (release 0.41.0; its Package.swift
+             pins the exact binary-target URLs + checksums)
 License:     GNU LGPL v3.0
 
   mpv:    https://github.com/mpv-player/mpv      (LGPL v2.1+)
@@ -55,11 +63,19 @@ available at:
                               repository, derived from
                               https://github.com/jarnedemeulemeester/libmpv-android
 
-A consuming application that distributes these libraries must keep them
-dynamically linkable / replaceable, must reproduce this attribution notice
-(for example, in an in-app open-source licenses screen), and must not obfuscate
-the libraries. See the "Licensing" section of the README for the plain-English
-summary.
+A consuming application that distributes these libraries must let users replace
+them with a modified version, must reproduce this attribution notice (for example,
+in an in-app open-source licenses screen), and must not obfuscate the libraries.
+
+  - Android: libmpv is a shared library (.so) — replaceable in place.
+  - iOS: the MPVKit LGPL xcframeworks are linked statically (LGPL v3 §6). The app
+    distributor must enable relinking against a modified libmpv — e.g. keep using
+    the unmodified, published MPVKit LGPL binaries (provided in their relinkable
+    xcframework form) and, on request, supply the app's object files or a
+    relinkable build. This is the standard obligation for MPVKit's static LGPL
+    distribution and is the app distributor's to honor.
+
+See the "Licensing" section of the README for the plain-English summary.
 
 ================================================================================
 NOT LEGAL ADVICE

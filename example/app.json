@@ -21,12 +21,6 @@
           "enableCleartextTraffic": true,
           "defaultVoDriver": "gpu-next"
         }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "ios": { "useFrameworks": "dynamic" }
-        }
       ]
     ]
   }

@@ -41,7 +41,7 @@ module.
 
 | Platform | Supported | Notes |
 |---|---|---|
-| iOS | ✅ | iOS 14+. Renders via Metal/MoltenVK. Requires dynamic frameworks. |
+| iOS | ✅ | iOS 14+. Renders via Metal/MoltenVK. Links statically (no `useFrameworks` needed). |
 | tvOS | ⚠️ experimental | iOS 14+ codebase; HDR passthrough is rough. |
 | Android | ✅ | **minSdk 26** (Android 8.0). Below 26, fall back to another player. |
 | Web | ❌ | Exports inert stubs so your app still bundles; renders an unsupported notice. |
@@ -62,25 +62,27 @@ Add the config plugin to your `app.json` / `app.config.js`:
 ```json
 {
   "expo": {
-    "plugins": [
-      "expo-mpv-player",
-      [
-        "expo-build-properties",
-        { "ios": { "useFrameworks": "dynamic" } }
-      ]
-    ]
+    "plugins": ["expo-mpv-player"]
   }
 }
 ```
 
-The `useFrameworks: "dynamic"` setting is **required on iOS**: MPVKit ships binary
-xcframeworks that, under static linkage, get double-embedded (pod + app) and fail to
-link with duplicate symbols. Then regenerate native projects and build a dev client:
+No `useFrameworks` setting is needed — keep your app on its **default (static)**
+linkage. The iOS engine is the LGPL MPVKit prebuilt xcframeworks, vendored by this
+module's pod, so they link into your app once without conflicting with other native
+modules. (The old dynamic-frameworks requirement broke React-core linking for other
+RN native modules; it is gone.) Then regenerate native projects and build a dev
+client:
 
 ```sh
 npx expo prebuild --clean
 npx expo run:ios      # or: npx expo run:android
 ```
+
+> **iOS prerequisite:** the LGPL MPVKit xcframeworks (~1 GB) are fetched into the
+> module's `ios/Frameworks/` on `pod install` (or run
+> `node_modules/expo-mpv-player/scripts/fetch-mpvkit-xcframeworks.sh`). They are not
+> committed to git.
 
 ### Config plugin options
 
@@ -103,9 +105,8 @@ npx expo run:ios      # or: npx expo run:android
 This package ships **LGPL** builds of mpv/FFmpeg on both platforms (the clean
 license boundary is the whole point — see [Licensing](#licensing)).
 
-- **iOS** links the LGPL `MPVKit` Swift Package. The config plugin adds it to your
-  prebuilt Xcode project; dynamic frameworks are required. Details and the
-  fallback (vendored xcframeworks) are in
+- **iOS** vendors the LGPL `MPVKit` prebuilt xcframeworks from this module's pod
+  (static linkage; no `useFrameworks` requirement). Details in
   [`docs/ios-integration.md`](./docs/ios-integration.md).
 - **Android** links a custom **LGPL** `libmpv` AAR you build from the public
   scripts in [`android/libmpv-build/`](./android/libmpv-build/) (FFmpeg without
@@ -234,9 +235,17 @@ LGPL FFmpeg build on Android). See [`NOTICE`](./NOTICE) for attributions, versio
 the written offer of source for those components.
 
 If you ship this in a **closed-source** app, the LGPL applies to the bundled mpv/FFmpeg
-libraries: keep them dynamically linkable/replaceable, reproduce the attribution notice
-(e.g. an in-app licenses screen), and don't obfuscate the libraries. Your own
-application code stays proprietary.
+libraries. Reproduce the attribution notice (e.g. an in-app licenses screen) and don't
+obfuscate the libraries; your own application code stays proprietary. Note the linkage:
+
+- **Android** links libmpv as a **shared** library (`.so`) — replaceable as-is, the
+  simplest LGPL path.
+- **iOS** links the MPVKit LGPL xcframeworks **statically**. LGPL §6 then asks you to
+  let a user **relink** your app against a modified libmpv. In practice: keep using the
+  unmodified, published MPVKit LGPL binaries (provided here in their relinkable
+  xcframework form) and, on request, provide your app's object files / a relinkable
+  build. (This is the standard obligation for MPVKit's static LGPL distribution; it is
+  the app distributor's to honor.)
 
 > ⚠️ **Not legal advice.** Codec **patent** licensing (e.g. HEVC, AAC) is a separate
 > concern from the open-source license. If you distribute a commercial app, get a legal
